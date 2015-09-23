@@ -3,13 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package Controller;
+package Utilities;
 
-import java.io.IOException;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import Controller.Configuration;
+import Controller.VMRequest;
+import Enumerators.EServiceType;
+import Enumerators.ESlotDurationMetric;
+import Enumerators.EVMType;
+import java.util.Hashtable;
+import java.util.Random;
 
 /**
  *
@@ -17,92 +19,60 @@ import org.apache.http.impl.client.HttpClients;
  */
 public class Utilities {
     
-    public String createVM(String name,String OS, String type, String interIP, String interMask, String interDefaultGateway, String host) throws IOException{
+   
+    public static int randInt(int min, int max) {
+
+        Random rand=new Random();
     
-       //http://nitlab3.inf.uth.gr:4100/vm-create/server-john/precise/small/192.168.100.10/255.255.254.0/192.168.100.1/node
-        
-        String uri="http://nitlab3.inf.uth.gr:4100/vm-create/";
-        String methodResponse="";
-        
-        uri+=name+"/";
-        uri+=OS+"/";
-        uri+=type+"/";
-        uri+=interIP+"/";
-        uri+=interMask+"/";
-        uri+=interDefaultGateway+"/";   
-        uri+=host;
-        
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpGet httpget = new HttpGet(uri);
-        CloseableHttpResponse response = httpclient.execute(httpget);
+        int randomNum = rand.nextInt((max - min) + 1) + min;
 
-        try {
-
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-
-        } 
-        finally {
-            response.close();
-        }
-        
-        return methodResponse;
+        return randomNum;
     }
     
-    public String startVM(String name) throws IOException{
-    
-        //http://nitlab3.inf.uth.gr:4100/vm-start/server-john
+    public static String determineVMType(int providerID) {
         
-        String uri="http://nitlab3.inf.uth.gr:4100/vm-start/";
-        String methodResponse="";
-        
-        uri+=name;
-        
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpGet httpget = new HttpGet(uri);
-        CloseableHttpResponse response = httpclient.execute(httpget);
-
-        try {
-
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-
-        } 
-        finally {
-            response.close();
-        }
-        
-        return methodResponse;
-    }
-    
-    public String deleteVM(String name) throws IOException{
+      int type=Utilities.randInt(0,2);
+      String vmType="";
+      if(type==0)
+          vmType=EVMType.Small.toString(); 
+      else if(type==1)
+          vmType=EVMType.Medium.toString();
+      else if(type==2)
+          vmType=EVMType.Large.toString();
       
-        String uri="http://nitlab3.inf.uth.gr:4100/vm-destroy/";
-        String methodResponse="";
-        
-        uri+=name;
-        
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpGet httpget = new HttpGet(uri);
-        
-        CloseableHttpResponse response = httpclient.execute(httpget);
-
-        try {
-
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-
-        } 
-        finally {
-            response.close();
-        }
-        
-        return methodResponse;
+      return vmType;
+      
     }
+    
+    public static String determineVMService(int providerID) {
+        
+      int type=Utilities.randInt(0,1);
+      String service=""; 
+      
+      if(type==0)
+          service=EServiceType.AB.toString(); 
+      else if(type==1)
+          service=EServiceType.VLC.toString();
+      
+      return service;
+    }
+ 
+    public static Hashtable determineVMparameters(VMRequest vmRequest,String host) {
+    
+        Hashtable parameters=new Hashtable();
+    
+        String vmName="host_"+host+"_vm_"+String.valueOf(vmRequest.getProviderID())+"_"+String.valueOf(vmRequest.getRequestID());
+        
+        parameters.put("hostName",host);
+        parameters.put("vmName",vmName);
+        parameters.put("OS","precise");
+        parameters.put("vmType",vmRequest.getVmType());
+        parameters.put("interIP","192.168.XXX.YYY");
+        parameters.put("interMask","255.255.254.0");
+        parameters.put("interDefaultGateway","192.168.XXX.YYY");
+        
+        return parameters;
+        
+        
+    }    
 }

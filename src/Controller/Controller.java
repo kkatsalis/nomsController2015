@@ -5,9 +5,21 @@
  */
 package Controller;
 
+import static Controller.Simulator.slot;
+import Enumerators.ESlotDurationMetric;
+import Utilities.WebUtilities;
+import Statistics.VMStats;
+import Statistics.HostStats;
+import Statistics.ProviderStats;
+import Utilities.Utilities;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import jsc.distributions.Exponential;
 import jsc.distributions.Pareto;
 
@@ -18,65 +30,146 @@ import jsc.distributions.Pareto;
 public class Controller {
 
     Configuration _config;
-    List<String> _nodes;
-    Queue<VMRequest>[] _queue;
+    Slot[] _slots;
+            
+    Host[] _hosts;
+    WebClient[] _clients;
+    
    
     int _numberOfHosts=0;
-    int _numberOfProviders=0;
     
-   // How to create requests per Service Domain
-    String[] _generatorType; 
-    Exponential[] _exponentialArrivalGenerator;
-    Pareto[] _paretoArrivalGenerator;
+    ProviderStats[] _providerStats;
+    HostStats[] _hostStats;
+    List<VMStats> _activeVMStats;
     
-    Random _arrivalTimeRandom;
-    Random rand;
+    WebUtilities _webUtilities;
     
+    Timer _controllerTimer;
+    int _maxControlInstances=0; 
+    int _currentInstance=0; 
+    int[][][][] allocationMatrix;
     
-    Controller(List<String> nodes, Configuration config) {
+    Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots) {
+        
         this._config=config;
-        this._nodes=nodes;
-        _numberOfHosts=nodes.size();
-    }
-    
-    public void initializeController(){
-    
+        this._slots=slots;
+        this._hosts=hosts;
+        this._clients=clients;
+        this._numberOfHosts=hosts.length;
         
-        
-        _queue=new Queue[_numberOfProviders];        // A queue with VM requests per Provider
-        
-        //Initialize generators
-        _generatorType=new String[_numberOfProviders];
-        _exponentialArrivalGenerator=new Exponential[_numberOfProviders];
-        _paretoArrivalGenerator=new Pareto[_numberOfProviders];
-    
-        double lamda=0;
-        double location=0;
-        double shape=0;
-        
-        for (int i = 0; i < _numberOfProviders; i++) {
-                
-                if(_generatorType[i].equals(EGeneratorType.Exponential.toString())){
-                
-                    lamda=((Double)_config.getRequestArrivalRateConfig()[i].get("mean"));
-                    this._exponentialArrivalGenerator[i]=new Exponential(lamda);
-                    this._paretoArrivalGenerator[i]=null;
-                }
-                else if(_generatorType[i].equals(EGeneratorType.Pareto.toString())){
-                    
-                  _exponentialArrivalGenerator[i]=null;  
-                  location=((Double)_config.getRequestArrivalRateConfig()[i].get("location"));
-                  shape =((Double)_config.getRequestArrivalRateConfig()[i].get("shape"));
-                  
-                  this._paretoArrivalGenerator[i]=new Pareto(location, shape);
-                  double mean=_paretoArrivalGenerator[i].mean();
-                  System.out.print(mean);
-                }
-                 else if(_generatorType[i].equals(EGeneratorType.Random.toString())){
-                 //missing
-                 }
+        this._providerStats=new ProviderStats[config.getProvidersNumber()];
+        this._webUtilities=new WebUtilities(config);
        
-            }      
+        
+        this._hostStats=new HostStats[_numberOfHosts];
+        this._activeVMStats=new ArrayList<>();
+        this._maxControlInstances=_config.getStatsUpdatesPerSlot();
+        
+        
+        allocationMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()][_config.getHostsNumber()];//: # of allocated VMs of type v for service s of provider j at AP i
     }
+
+    void Run(int slot) throws IOException {
+
+        System.out.println("------- Slot:"+slot);
+
+        startControllerTimer();
+        
+          
+
+        
+        
+        
+ 
+  //      _webUtilities.startVM("kostas","node080");
+          
+         _webUtilities.updateHostStats("node080", slot, slot);
+        
+        
+//       deleteVMs();       
+//       retrieveHostStatistics();
+//       retrieveActiveVMStatistics();
+//       retrieveClientStatistics();
+//       
+//       runScheduler();
+
+//       updateActiveVMsObjectsPerHost();
+//       createVMs();
+//       startVMs();
+//       updateProviderStats();
+//       startWebClients();
+        
+    }
+
+     private void createVMs() throws IOException {
+     
+        VMRequest request;
+        
+        for (int i = 0; i < _config.getProvidersNumber(); i++) {
+            for (int j = 0; j < _slots[slot].getVmRequests2Activate()[i].size(); i++) {
+                request=_slots[slot].getVmRequests2Activate()[i].get(j);
+
+                System.out.println("provider:"+i+" - activate: "+request.getRequestID());
+                _webUtilities.createVM(Utilities.determineVMparameters(request,"node080"));
+
+            }    
+        }
+     
+     
+     }
+    
+    private void deleteVMs() {
+
+       //Step 1: update Statistics Before Remove 
+       
+        
+       //Step 2: remove from List VM
+
+       
+       //Step 3: remove VM Object
+        
+    
+    }
+
+    private void startControllerTimer() {
+           
+        int statsUpdateInterval=_config.getSlotDuration()/_config.getStatsUpdatesPerSlot();
+
+            _controllerTimer = new Timer();
+            _currentInstance=0;
+            
+            if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.milliseconds.toString()))
+               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(),0 ,statsUpdateInterval);
+            else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.seconds.toString()))
+               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(),0 ,statsUpdateInterval*1000);
+            else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.minutes.toString()))
+               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(),0 ,60*statsUpdateInterval*1000);
+            else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.hours.toString()))
+               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(),0 ,3600*statsUpdateInterval*1000);
+    }
+
+   
+    
+    
+    class ExecuteControllerTimer extends TimerTask {
+
+            public void run() {
+             
+                if(_currentInstance<_maxControlInstances){
+                    updateVMStatistics(_currentInstance);
+                 
+                   _currentInstance++;
+              }
+              else{
+                _controllerTimer.cancel();
+              }
+              
+            }
+
+        private void updateVMStatistics(int currentInstance) {
+           System.out.println("instance: "+currentInstance);
+        }
+    }
+    
     
 }

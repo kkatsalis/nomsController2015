@@ -5,6 +5,11 @@
  */
 package Controller;
 
+import Enumerators.EVMType;
+import Utilities.Utilities;
+import Enumerators.EServiceType;
+import java.util.Random;
+
 /**
  *
  * @author kostas
@@ -12,25 +17,36 @@ package Controller;
 public class VMRequest {
     
     int providerID;
-    int requestID;
+    int requestID=0;
+    int slotStart;
+    int slotEnd;
+    
     String vmType;
-    long slotOfArrival;     // long start = System.currentTimeMillis( );
-    long slotOfDeparture;
-    boolean satisfied;
-
-    public VMRequest(int providerID, int requestID) {
+    String service;
+    int lifetime;     //in Slots
+   
+    public VMRequest(int providerID,int requestID, int lifetime) {
+        
         this.providerID = providerID;
-        this.requestID = requestID;
+        this.lifetime=lifetime;
+        this.requestID=requestID;
+        
+    
     }
 
+    
+    
+    
     public int getProviderID() {
         return providerID;
     }
 
-      
-    public void setRequestID(int requestID) {
-        this.requestID = requestID;
+    public int getRequestID() {
+        return requestID;
     }
+
+      
+    
 
     public String getVmType() {
         return vmType;
@@ -40,29 +56,36 @@ public class VMRequest {
         this.vmType = vmType;
     }
 
-    public long getSlotOfArrival() {
-        return slotOfArrival;
+    public int getSlotStart() {
+        return slotStart;
     }
 
-    public void setSlotOfArrival(long slotOfArrival) {
-        this.slotOfArrival = slotOfArrival;
+    public void setSlotStart(int slotStart) {
+        this.slotStart = slotStart;
     }
 
-    public long getSlotOfDeparture() {
-        return slotOfDeparture;
+    public int getSlotEnd() {
+        return slotEnd;
     }
 
-    public void setSlotOfDeparture(long slotOfDeparture) {
-        this.slotOfDeparture = slotOfDeparture;
+    public void setSlotEnd(int slotEnd) {
+        this.slotEnd = slotEnd;
     }
 
-    public boolean isSatisfied() {
-        return satisfied;
+   
+
+    public String getService() {
+        return service;
     }
 
-    public void setSatisfied(boolean satisfied) {
-        this.satisfied = satisfied;
+    public void setService(String service) {
+        this.service = service;
     }
+    
+    
+   
+
+    
 
     
     

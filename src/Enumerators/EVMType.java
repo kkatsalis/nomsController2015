@@ -3,18 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package Controller;
+package Enumerators;
 
 /**
  *
  * @author kostas
  */
-public class EdgeControllerApplication {
-    
-     public static void main(String[] args) {
-     
-     
-     
-     }
-    
+public enum EVMType {
+Small,
+Medium,
+Large  
 }

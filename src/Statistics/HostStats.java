@@ -5,13 +5,14 @@
  */
 package Statistics;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  *
  * @author kostas
  */
-public class Host {
+public class HostStats {
    
     String Hostname;
     String Time;
@@ -30,8 +31,17 @@ public class Host {
     String Total_hardware_memory_KB;
     String Total_memory_KB;
     String Total_guest_memory_KB;
-    List<NetRate> netRates;
+    List<NetRateStats> netRates;
 
+    public HostStats(){
+        
+        netRates=new ArrayList<>();
+        netRates.add(new NetRateStats("eth1"));
+        netRates.add(new NetRateStats("wlan0"));
+    
+    }
+    
+    
     public String getHostname() {
         return Hostname;
     }
@@ -168,11 +178,11 @@ public class Host {
         this.Total_guest_memory_KB = Total_guest_memory_KB;
     }
 
-    public List<NetRate> getNetRates() {
+    public List<NetRateStats> getNetRates() {
         return netRates;
     }
 
-    public void setNetRates(List<NetRate> netRates) {
+    public void setNetRates(List<NetRateStats> netRates) {
         this.netRates = netRates;
     }
     

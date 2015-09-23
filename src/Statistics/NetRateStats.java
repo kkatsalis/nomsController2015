@@ -9,43 +9,47 @@ package Statistics;
  *
  * @author kostas
  */
-public class NetRate {
+public class NetRateStats {
       
-    String intrface;
-    String timestamp;
-    String Kbps_in;
-    String Kbps_out;
+    String _interface;
+    String _timeStamp;
+    double _Kbps_in;
+    double _Kbps_out;
 
-    public String getIntrface() {
-        return intrface;
+    public NetRateStats(String intrface){
+    
+        this._interface=intrface;
+    }
+    public String getInterface() {
+        return _interface;
     }
 
-    public void setIntrface(String intrface) {
-        this.intrface = intrface;
+    public String getTimeStamp() {
+        return _timeStamp;
     }
 
-    public String getTimestamp() {
-        return timestamp;
+    public void setTimeStamp(String timestamp) {
+        this._timeStamp = timestamp;
     }
 
-    public void setTimestamp(String timestamp) {
-        this.timestamp = timestamp;
+    public double getKbps_in() {
+        return _Kbps_in;
     }
 
-    public String getKbps_in() {
-        return Kbps_in;
+    public void setKbps_in(double Kbps_in) {
+        this._Kbps_in = Kbps_in;
     }
 
-    public void setKbps_in(String Kbps_in) {
-        this.Kbps_in = Kbps_in;
+    public double getKbps_out() {
+        return _Kbps_out;
     }
 
-    public String getKbps_out() {
-        return Kbps_out;
+    public void setKbps_out(double Kbps_out) {
+        this._Kbps_out = Kbps_out;
     }
 
-    public void setKbps_out(String Kbps_out) {
-        this.Kbps_out = Kbps_out;
+    public void setInterface(String _interface) {
+        this._interface = _interface;
     }
     
     
