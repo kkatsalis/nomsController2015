@@ -33,6 +33,9 @@ public class ProviderStats {
     int mediumVMRequests2Cloud=0;    //small  VM Requests Per Provider
     int largeVMRequests2Cloud=0;    //small  VM Requests Per Provider
     
+    int requestsSatisfied=0;
+    int requestsRejected=0;
+    
     public ProviderStats(Configuration config){
     
         this._config=config;
@@ -143,6 +146,22 @@ public class ProviderStats {
 
     public void setLargeVMRequests2Cloud(int largeVMRequests2Cloud) {
         this.largeVMRequests2Cloud = largeVMRequests2Cloud;
+    }
+
+    public int getRequestsSatisfied() {
+        return requestsSatisfied;
+    }
+
+    public void setRequestsSatisfied(int requestsSatisfied) {
+        this.requestsSatisfied = requestsSatisfied;
+    }
+
+    public int getRequestsRejected() {
+        return requestsRejected;
+    }
+
+    public void setRequestsRejected(int requestsRejected) {
+        this.requestsRejected = requestsRejected;
     }
 
     

@@ -48,6 +48,8 @@ public class Controller {
     int _maxControlInstances=0; 
     int _currentInstance=0; 
     int[][][][] allocationMatrix;
+  
+
     
     Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots) {
         
@@ -64,8 +66,7 @@ public class Controller {
         this._hostStats=new HostStats[_numberOfHosts];
         this._activeVMStats=new ArrayList<>();
         this._maxControlInstances=_config.getStatsUpdatesPerSlot();
-        
-        
+       
         allocationMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()][_config.getHostsNumber()];//: # of allocated VMs of type v for service s of provider j at AP i
     }
 
@@ -74,10 +75,6 @@ public class Controller {
         System.out.println("------- Slot:"+slot);
 
         startControllerTimer();
-        
-          
-
-        
         
         
  
@@ -101,19 +98,37 @@ public class Controller {
         
     }
 
-     private void createVMs() throws IOException {
+     private void createVM(VMRequest request,String nodeName) throws IOException {
      
-        VMRequest request;
+        Hashtable vmParameters;
         
-        for (int i = 0; i < _config.getProvidersNumber(); i++) {
-            for (int j = 0; j < _slots[slot].getVmRequests2Activate()[i].size(); i++) {
-                request=_slots[slot].getVmRequests2Activate()[i].get(j);
-
-                System.out.println("provider:"+i+" - activate: "+request.getRequestID());
-                _webUtilities.createVM(Utilities.determineVMparameters(request,"node080"));
-
-            }    
-        }
+        boolean vmCreated=false;
+        boolean vmCreateCommandSend=false;
+        
+       
+                vmCreated=false;
+        
+                System.out.println("provider:"+request.providerID+" - activate: "+request.getRequestID());
+                
+                //Step 1: Add VM on the Physical node
+                vmParameters=Utilities.determineVMparameters(request,"node080");
+                
+                while(!vmCreated){
+                    
+                    vmCreateCommandSend=_webUtilities.createVM(vmParameters);
+                        
+                    if(vmCreateCommandSend){
+                        vmCreated=_webUtilities.checkVMListOnHost(nodeName,String.valueOf(vmParameters.get("vmName")));
+                    
+                    }
+                    
+                   
+                }
+                
+                //Step 2: Add VM on the Host Object
+               
+                //Step 3; Update provider Statistics
+              
      
      
      }
@@ -148,7 +163,6 @@ public class Controller {
                _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(),0 ,3600*statsUpdateInterval*1000);
     }
 
-   
     
     
     class ExecuteControllerTimer extends TimerTask {

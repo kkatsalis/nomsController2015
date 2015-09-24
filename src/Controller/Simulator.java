@@ -44,8 +44,9 @@ public class Simulator {
        WebClient[] _clients;
        Slot[] _slots;
        
-       Controller _controller;
-       int[] requestIDs;
+        Controller _controller;
+        int requestIDs;
+        
        // How to create requests per Service Domain, one per provider
         String[] _rateGeneratorType; 
         Exponential[] _rateExponentialGenerator;
@@ -72,10 +73,7 @@ public class Simulator {
            this._hosts=new Host[hostNames.size()];
            this._clients=new WebClient[clientNames.size()];
            
-           this.requestIDs=new int[_config.getProvidersNumber()];
-            for (int i = 0; i < _config.getProvidersNumber(); i++) {
-                requestIDs[i]=0;
-            }
+           this.requestIDs=0;
            
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
@@ -237,8 +235,8 @@ public class Simulator {
         slot2RemoveVM=slot2AddVM+lifetime;
         
         if(slot2AddVM<_config.getNumberOfSlots()){
-            requestIDs[providerID]++;
-            VMRequest newRequest = new VMRequest(providerID,requestIDs[providerID],lifetime);
+            requestIDs++;
+            VMRequest newRequest = new VMRequest(providerID,requestIDs,lifetime);
 
             newRequest.setVmType(Utilities.determineVMType(providerID));
             newRequest.setService(Utilities.determineVMService(providerID));
@@ -257,7 +255,7 @@ public class Simulator {
                 _slots[slot2RemoveVM].getVmRequests2Remove()[providerID].add(newRequest); 
         }
         else
-            System.out.println("failed to add: "+requestIDs[providerID] );
+            System.out.println("failed to add: "+requestIDs );
          
         
         

@@ -15,6 +15,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -36,12 +38,12 @@ public class WebUtilities {
             
     }
     
-    public String createVM(Hashtable parameters) throws IOException{
+    public boolean createVM(Hashtable parameters) throws IOException{
     
        //http://nitlab3.inf.uth.gr:4100/vm-create/server-john/precise/small/192.168.100.10/255.255.254.0/192.168.100.1/node
         
         String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/vm-create/";
-        String methodResponse="";
+        boolean methodResponse=false;
         
         String vmName=String.valueOf(parameters.get("vmName"));
         String OS=String.valueOf(parameters.get("OS")); 
@@ -74,6 +76,9 @@ public class WebUtilities {
         finally {
             response.close();
         }
+
+        if(response.getStatusLine().toString()=="200")
+            methodResponse=true;
         
         return methodResponse;
     }
@@ -231,13 +236,28 @@ public class WebUtilities {
     }
     
      
-    public void checkVMListOnHost(String hostName){
+    public boolean checkVMListOnHost(String hostName, String vmName) throws IOException{
     
-        String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/virsh_list_all/";
-        uri+=hostName;
-    
-    
-    
+         
+            String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/virsh_list_all/";
+            uri+=hostName;
+            
+            CloseableHttpClient httpclient = HttpClients.createDefault();
+            HttpGet httpget = new HttpGet(uri);
+            CloseableHttpResponse response = httpclient.execute(httpget);
+            
+            String json="";
+            String output;
+            BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
+            
+            while ((output = br.readLine()) != null) {
+                if(output.contains(vmName))
+                return true;
+            }
+            
+            
+            return false;
+        
     }
     
     

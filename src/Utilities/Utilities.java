@@ -60,16 +60,17 @@ public class Utilities {
     public static Hashtable determineVMparameters(VMRequest vmRequest,String host) {
     
         Hashtable parameters=new Hashtable();
-    
+        int y=vmRequest.getRequestID();
+        
         String vmName="host_"+host+"_vm_"+String.valueOf(vmRequest.getProviderID())+"_"+String.valueOf(vmRequest.getRequestID());
         
         parameters.put("hostName",host);
         parameters.put("vmName",vmName);
         parameters.put("OS","precise");
         parameters.put("vmType",vmRequest.getVmType());
-        parameters.put("interIP","192.168.XXX.YYY");
+        parameters.put("interIP","10.64.98."+String.valueOf(y));
         parameters.put("interMask","255.255.254.0");
-        parameters.put("interDefaultGateway","192.168.XXX.YYY");
+        parameters.put("interDefaultGateway","10.64.98.1");
         
         return parameters;
         
