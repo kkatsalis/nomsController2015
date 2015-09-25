@@ -65,13 +65,13 @@ public class Simulator {
         long experimentStart;
         long experimentStop;
         
-        public Simulator(List<String> hostNames,List<String> clientNames,List<String> servicesNames, List<String> vmTypesNames){
+        public Simulator(){
            
-           this._config=new Configuration(hostNames,clientNames,servicesNames,vmTypesNames);
-           this._hostNames=hostNames;
+           this._config=new Configuration();
+           this._hostNames=_config.getHostNames();
     
-           this._hosts=new Host[hostNames.size()];
-           this._clients=new WebClient[clientNames.size()];
+           this._hosts=new Host[_config.getHostNames().size()];
+           this._clients=new WebClient[_config.getClientNames().size()];
            
            this.requestIDs=0;
            
@@ -175,7 +175,7 @@ public class Simulator {
         private void initializeNodeObjects() {
         
             for (int i = 0; i < _hosts.length; i++) {
-                _hosts[i]=new Host(_config,_hostNames.get(i));
+                _hosts[i]=new Host(i,_config,_hostNames.get(i));
             }
             
             for (int i = 0; i < _clients.length; i++) {
@@ -238,8 +238,8 @@ public class Simulator {
             requestIDs++;
             VMRequest newRequest = new VMRequest(providerID,requestIDs,lifetime);
 
-            newRequest.setVmType(Utilities.determineVMType(providerID));
-            newRequest.setService(Utilities.determineVMService(providerID));
+            newRequest.setVmType(Utilities.determineVMType(providerID,_config));
+            newRequest.setService(Utilities.determineVMService(providerID,_config));
 
 
             //add vm during this slot

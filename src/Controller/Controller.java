@@ -16,6 +16,7 @@ import Utilities.Utilities;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
@@ -51,9 +52,10 @@ public class Controller {
     Timer _controllerTimer;
     int _maxControlInstances=0; 
     int _currentInstance=0; 
+    int[][][][] requestMatrix;
     int[][][][] allocationMatrix;
   
-
+    int vmIDs=0;
     
     Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots) {
         
@@ -71,6 +73,7 @@ public class Controller {
         this._activeVMStats=new ArrayList<>();
         this._maxControlInstances=_config.getStatsUpdatesPerSlot();
        
+        requestMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()][_config.getHostsNumber()];//: # of allocated VMs of type v for service s of provider j at AP i
         allocationMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()][_config.getHostsNumber()];//: # of allocated VMs of type v for service s of provider j at AP i
     }
 
@@ -83,83 +86,97 @@ public class Controller {
         try {
             //      _webUtilities.startVM("kostas","node080");
             
-            
 
 //       retrieveHostStatistics();
 //       retrieveActiveVMStatistics();
 //       retrieveClientStatistics();
-//       
+
+         deleteVMs(slot);  
+ 
 //       runScheduler();
-//       deleteVMs();
-//       updateActiveVMsObjectsPerHost();
-            for (int i = 0; i < 10; i++) {
-                 List<VMRequest> list2Create=translateTheOptSolutionToVMRequets(slot, nodeName);
+       
+       
+            // Start New VMs
+            List<VMRequest> list2Create=null;
+            VMRequest request=null;
+            
+            for (int i = 0; i < _config.getHostsNumber(); i++) {
+                 list2Create=CplexSolution2VMRequets(slot, _hosts[i].getHostID());
+                                  
+                 for (Iterator iterator = list2Create.iterator(); iterator.hasNext();) {
+                    request = (VMRequest) iterator.next();
+                    
+                    LoadVM loadVM=new LoadVM(slot,request,_hosts[i].getNodeName());
+                           loadVM.start();
+                     
+                }
+                 
             }
    
-            createVMs();
-//       startVMs();
-//       updateProviderStats();
+            
+
 //       startWebClients();
             
-        } catch (JSONException ex) {
+        } catch (Exception ex) {
             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
         }
         
     }
 
-    private List<VMRequest> translateTheOptSolutionToVMRequets(int slot, String nodeName){
+    private List<VMRequest> CplexSolution2VMRequets(int slot, int hostID){
 
-        List<VMRequest> list2Create=new ArrayList<>();
+        List<VMRequest> vmList2Create=new ArrayList<>();
     
-        return list2Create;
+        return vmList2Create;
     }
     
     
-    private void createVM(VMRequest request,String nodeName) throws IOException {
-     
-        Hashtable vmParameters;
-        
-        boolean vmCreated=false;
-        boolean vmCreateCommandSend=false;
-        
-       
-                vmCreated=false;
-        
-                System.out.println("provider:"+request.providerID+" - activate: "+request.getRequestID());
-                
-                //Step 1: Add VM on the Physical node
-                vmParameters=Utilities.determineVMparameters(request,"node080");
-                
-                while(!vmCreated){
-                    
-                    vmCreateCommandSend=_webUtilities.createVM(vmParameters);
-                        
-                    if(vmCreateCommandSend){
-                        vmCreated=_webUtilities.checkVMListOnHost(nodeName,String.valueOf(vmParameters.get("vmName")));
-                    
-                    }
-                    
-                   
-                }
-                
-                //Step 2: Add VM on the Active VMs List on the Host Object
-               
-                //Step 3: Update provider Statistics
-              
-     
-     
-     }
     
-    private void deleteVMs() {
+    private void deleteVMs(int slot) throws IOException {
 
-       //Step 1: update Statistics Before Remove 
+     
+       int vms2DeleteNumber=0; 
+       List<Integer> requestID2RemoveThisSlot=new ArrayList<>();
        
-        
-       //Step 2: remove from List VM
-
+       // Step 1: Find RequestIDs to remove
+       for (int i = 0; i < _config.getProvidersNumber(); i++) {
+            
+           vms2DeleteNumber=_slots[slot].getVmRequests2Remove()[i].size();
+           
+           for (int j = 0; j < vms2DeleteNumber; j++) {
+               requestID2RemoveThisSlot.add(_slots[slot].getVmRequests2Remove()[i].get(j).getRequestID());
+           }
+        }
        
-       //Step 3: remove VM Object
+        // Step 2: Find the VMs based on the requestID to remove and Update Host object
         
+        for (int i = 0; i < _config.getHostsNumber(); i++) {
+            for (int j = 0; j < _hosts[i].getVMs().size(); j++) {
+                if(requestID2RemoveThisSlot.contains(_hosts[i].getVMs().get(j).getVmReuestId())){
+                    _hosts[i].getVMs().get(j).setSlotDeactivated(slot);
+                    _hosts[i].getVMs().get(j).setActive(false);
+                }
+            }
+        }    
+       
+       String hostName="";
+       String vmName="";
+       
+       //Step 3: Delete the VM
+       for (int i = 0; i < _config.getHostsNumber(); i++) {
+            hostName=_hosts[i].getNodeName();
+            
+            for (int j = 0; j < _hosts[i].getVMs().size(); j++) {
+                
+                if(requestID2RemoveThisSlot.contains(_hosts[i].getVMs().get(j).getVmReuestId())&_hosts[i].getVMs().get(j).isActive()){
+                    vmName=_hosts[i].getVMs().get(j).getName();
+                    
+                    DeleteVM deleter=new DeleteVM(hostName,vmName);
+                    deleter.start();
+                    
+            }   
+           }
+       }
     
     }
 
@@ -181,6 +198,7 @@ public class Controller {
     }
 
     private void updateAllHostStatistics() throws IOException, JSONException {
+       
         int statsNumber=0;
         
         for (int i = 0; i < _hosts.length; i++) {
@@ -225,6 +243,34 @@ public class Controller {
         
     }
 
+    private void updateProviderStatistics() {
+        
+        int[][][][] requestMatrix;
+        int[][][][] allocationMatrix;
+        
+    }
+
+    private void updateActiveVMStatistics(int currentInstance) throws IOException {
+           
+        System.out.println("instance: "+currentInstance);
+           
+        for (int i = 0; i < _hosts.length; i++) {
+            List<VMStats> _allVMStats=_webUtilities.retrieveVMStatsPerHost(_hosts[i].getNodeName(), slot, currentInstance);
+            
+            for (Iterator<VMStats> iterator = _allVMStats.iterator(); iterator.hasNext();) {
+                VMStats next = iterator.next();
+                
+               //Find the VM and add Stats
+                for (int j = 0; j < _hosts[i].getVMs().size(); j++) {
+                    if(_hosts[i].getVMs().get(j).getName().equals(next.getDomain_name()))
+                        _hosts[i].getVMs().get(j).getStats().add(next);
+                }
+                
+            }
+            
+        }
+           
+    }
     
     class ExecuteControllerTimer extends TimerTask {
 
@@ -235,7 +281,7 @@ public class Controller {
                     try {
                         
                         updateAllHostStatistics();
-                        updateVMStatistics(_currentInstance);
+                        updateActiveVMStatistics(_currentInstance);
                         
                         _currentInstance++;
                         
@@ -251,10 +297,172 @@ public class Controller {
               
             }
 
-        private void updateVMStatistics(int currentInstance) {
-           System.out.println("instance: "+currentInstance);
-        }
+        
     }
     
+    class DeleteVM implements Runnable{
+        
+        private Thread _thread;
+        private String threadName;
+        private String hostName;
+        private String vmName;
+        
+        public boolean deleted=false;
+        
+        DeleteVM(String hostName,String vmName){
+        
+           this.hostName=hostName;
+           this.vmName=vmName;
+           threadName = hostName+"-"+vmName;
+           
+           System.out.println("Creating " +  threadName );
+        }
+           public void run() {
+              
+              try {
+                
+                    System.out.println("Delete Thread: " + threadName + " started");
+                    
+                    _webUtilities.deleteVM(hostName, vmName);
+                    
+                    // Let the thread sleep for a while.
+                    Thread.sleep(0);
+                 
+             } catch (Exception e) {
+                 System.out.println("Thread " +  threadName + " interrupted.");
+             }
+            
+              System.out.println("Delete Thread " +  threadName + " finished.");
+             deleted=true;
+           }
+
+           public void start ()
+           {
+              System.out.println("Starting " +  threadName );
+              if (_thread == null)
+              {
+                 _thread = new Thread (this, threadName);
+                 _thread.start ();
+              }
+           }
+
+        public boolean isDeleted() {
+            return deleted;
+        }
+           
+           
+
+    
+    }
+    
+    class LoadVM implements Runnable{
+        
+        private Thread _thread;
+        private String threadName;
+        private String hostName;
+        VMRequest request;
+        
+        public boolean loaded=false;
+        
+        LoadVM(int slot,VMRequest request,String hostName){
+        
+           this.hostName=hostName;
+           this.request=request;
+           
+           threadName = hostName+"-"+request.getRequestID();
+           
+           System.out.println("Creating " +  threadName );
+        }
+           public void run() {
+              
+              try {
+                
+                    System.out.println("Load VM Thread: " + threadName + " started");
+                    
+                     createAndStartVM(slot,request,hostName); 
+                    // Let the thread sleep for a while.
+                    Thread.sleep(0);
+                 
+             } catch (Exception e) {
+                 System.out.println("Thread " +  threadName + " interrupted.");
+             }
+            
+              System.out.println("Delete Thread " +  threadName + " finished.");
+             loaded=true;
+           }
+
+           public void start ()
+           {
+              System.out.println("Starting " +  threadName );
+              if (_thread == null)
+              {
+                 _thread = new Thread (this, threadName);
+                 _thread.start ();
+              }
+           }
+
+        public boolean isLoaded() {
+            return loaded;
+        }
+           
+        private boolean createAndStartVM(int slot,VMRequest request,String nodeName) throws IOException {
+     
+            Hashtable vmParameters;
+
+            boolean vmCreated=false;
+            boolean vmCreateCommandSend=false;
+        
+       
+            vmCreated=false;
+
+            System.out.println("provider:"+request.providerID+" - activate: "+request.getRequestID());
+
+            //Step 1: Add VM on the Physical node
+            vmParameters=Utilities.determineVMparameters(request,nodeName);
+
+            while(!vmCreated){
+
+                vmCreateCommandSend=_webUtilities.createVM(vmParameters);
+
+                if(vmCreateCommandSend){
+                    vmCreated=_webUtilities.checkVMListOnHost(nodeName,String.valueOf(vmParameters.get("vmName")));
+
+                }
+
+            }
+
+
+            String vmName=String.valueOf(vmParameters.get("vmName"));
+            boolean started=_webUtilities.startVM(vmName,nodeName);
+
+            //Step 2: Add VM on the Active VMs List on the Host Object
+            if(started){
+                for (int i = 0; i < _hosts.length; i++) {
+                    if(_hosts[i].getNodeName().equals(nodeName))
+                    {
+                        _hosts[i].getVMs().add(new VM(vmParameters,request,slot,vmIDs,_hosts[i].getNodeName()));
+                        vmIDs++;
+                    }
+                }
+
+
+
+            }
+
+            //Step 3: Update provider Statistics
+           updateProviderStatistics();
+
+
+            if(started)
+                return true;
+            else 
+                return false;
+     
+     
+     }
+       
+
+    
+    }
     
 }

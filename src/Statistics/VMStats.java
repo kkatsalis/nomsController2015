@@ -11,6 +11,7 @@ package Statistics;
  */
 public class VMStats {
      
+        String hostName;
         String Domain_ID;
         String Domain_name;
         String CPU_ns;
@@ -21,6 +22,7 @@ public class VMStats {
         String Block_WRRQ;
         String Net_RXBY;
         String Net_TXBY;
+        
         int instance;
         int slot;
         
@@ -128,6 +130,14 @@ public class VMStats {
 
     public void setSlot(int slot) {
         this.slot = slot;
+    }
+
+    public String getHostName() {
+        return hostName;
+    }
+
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
     }
         
         

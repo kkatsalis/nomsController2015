@@ -6,6 +6,8 @@
 package Controller;
 
 import Statistics.VMStats;
+import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 
 /**
@@ -16,6 +18,7 @@ public class VM {
     
     int vmID;
     int providerID;
+    String hostname;
     
     String name;
     String service;
@@ -25,19 +28,26 @@ public class VM {
     
     int slotActivated;
     int slotDeactivated;
+    int vmReuestId;
+    boolean active;
+    List<VMStats> stats;
     
-    boolean activeStatus;
-    VMStats[] stats;
     
-    
-    public VM(String service, String vmType, int providerID, int vmID, int slotAdded, int slotToBeRemoved,int controlInstances) {
+    public VM(Hashtable vmParameters, VMRequest request,int vmID, int slot,String nodeName) {
+        this.name=(String)vmParameters.get("vmName");
+        this.service = request.getService();
+        this.vmType = request.getVmType();
+        this.providerID = request.getProviderID();
+        this.vmID=vmID;
+        this.ip=(String)vmParameters.get("interIP");
+        this.netmask=(String)vmParameters.get("interMask");
+        this.slotActivated=slot;
+        this.vmReuestId=request.getRequestID();
+        this.hostname=nodeName;
         
-        this.service = service;
-        this.vmType = vmType;
-        this.providerID = providerID;
-        activeStatus=true;
+        active=true;
         
-        stats=new VMStats[controlInstances];
+        stats=new ArrayList<>();
     }
 
     public String getName() {
@@ -63,6 +73,44 @@ public class VM {
     public int getProviderID() {
         return providerID;
     }
+
+    public List<VMStats> getStats() {
+        return stats;
+    }
+
+    public int getSlotActivated() {
+        return slotActivated;
+    }
+
+    public void setSlotActivated(int slotActivated) {
+        this.slotActivated = slotActivated;
+    }
+
+    public int getSlotDeactivated() {
+        return slotDeactivated;
+    }
+
+    public void setSlotDeactivated(int slotDeactivated) {
+        this.slotDeactivated = slotDeactivated;
+    }
+
+    public int getVmReuestId() {
+        return vmReuestId;
+    }
+
+    public void setActive(boolean activeStatus) {
+        this.active = activeStatus;
+    }
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    
  
     
     

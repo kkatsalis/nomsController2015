@@ -7,9 +7,6 @@ package Utilities;
 
 import Controller.Configuration;
 import Controller.VMRequest;
-import Enumerators.EServiceType;
-import Enumerators.ESlotDurationMetric;
-import Enumerators.EVMType;
 import java.util.Hashtable;
 import java.util.Random;
 
@@ -29,42 +26,33 @@ public class Utilities {
         return randomNum;
     }
     
-    public static String determineVMType(int providerID) {
+    public static String determineVMType(int providerID,Configuration _config) {
         
-      int type=Utilities.randInt(0,2);
-      String vmType="";
-      if(type==0)
-          vmType=EVMType.Small.toString(); 
-      else if(type==1)
-          vmType=EVMType.Medium.toString();
-      else if(type==2)
-          vmType=EVMType.Large.toString();
+       //Random Allocation 
+      int type=Utilities.randInt(0,_config.getVmTypesNames().size()-1);
+     
+       String  vmType=_config.getVmTypesNames().get(type); //Small
       
       return vmType;
       
     }
     
-    public static String determineVMService(int providerID) {
+    public static String determineVMService(int providerID, Configuration _config) {
         
-      int type=Utilities.randInt(0,1);
-      String service=""; 
+      int type=Utilities.randInt(0,_config.getServicesNames().size()-1);
+      String serviceType=_config.getServicesNames().get(type); 
       
-      if(type==0)
-          service=EServiceType.AB.toString(); 
-      else if(type==1)
-          service=EServiceType.VLC.toString();
-      
-      return service;
+      return serviceType;
     }
  
-    public static Hashtable determineVMparameters(VMRequest vmRequest,String host) {
+    public static Hashtable determineVMparameters(VMRequest vmRequest,String hostName) {
     
         Hashtable parameters=new Hashtable();
         int y=vmRequest.getRequestID();
         
-        String vmName="host_"+host+"_vm_"+String.valueOf(vmRequest.getProviderID())+"_"+String.valueOf(vmRequest.getRequestID());
+        String vmName="host_"+hostName+"_vm_"+String.valueOf(vmRequest.getProviderID())+"_"+String.valueOf(vmRequest.getRequestID());
         
-        parameters.put("hostName",host);
+        parameters.put("hostName",hostName);
         parameters.put("vmName",vmName);
         parameters.put("OS","precise");
         parameters.put("vmType",vmRequest.getVmType());

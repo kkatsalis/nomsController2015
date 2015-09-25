@@ -15,21 +15,21 @@ import java.util.List;
  */
 public class Host {
 
+    int hostID;
     Configuration _config;
     String _nodeName;
     
-    List<VM> _activeVMs;    // A list with VMs per Host Machine;
-    List<VM> _closedVMs;    // A list with VMs per Host Machine;
+    List<VM> _VMs;    // A list with VMs per Host Machine;
     
     List<HostStats> _hostStats; // A number of measurements is taken for every Host per Slot
     
-    public Host(Configuration config,String nodeName) {
+    public Host(int hostId,Configuration config,String nodeName) {
         
+        this.hostID=hostId;
         this._config=config;
         this._nodeName=nodeName;
         
-        this._activeVMs=new ArrayList<>();     // A list with VMs per Host Machine;
-        this._closedVMs=new ArrayList<>();
+        this._VMs=new ArrayList<>();     // A list with VMs per Host Machine;
         this._hostStats=new ArrayList<>();
     }
 
@@ -41,6 +41,15 @@ public class Host {
         return _hostStats;
     }
 
+    public List<VM> getVMs() {
+        return _VMs;
+    }
+
+    public int getHostID() {
+        return hostID;
+    }
+
+    
     
     
 }

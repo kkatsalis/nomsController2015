@@ -8,6 +8,7 @@ package Controller;
 import Enumerators.EGeneratorType;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
@@ -37,20 +38,155 @@ public class Configuration {
        
     HashMap[] _vmRequestRateConfig;
     HashMap[] _vmLifeTimeConfig;
-
-    public Configuration(List<String> hostNames,List<String> clientNames,List<String> servicesNames, List<String> vmTypesNames) {
+ 
+    List<String> clientNames=new ArrayList<>();
+    List<String> hostNames=new ArrayList<>();
+    List<String> servicesNames=new ArrayList<>();
+    List<String> vmTypesNames=new ArrayList<>();
+        
+    public Configuration() {
   
-        hostsNumber=hostNames.size();
-        clientsNumber=clientNames.size();
-        servicesNumber=servicesNames.size();
-        vmTypesNumber=vmTypesNames.size();
+        this.clientNames=new ArrayList<>();
+        this.hostNames=new ArrayList<>();
+        this.servicesNames=new ArrayList<>();
+        this.vmTypesNames=new ArrayList<>();
+        
+        this.addHostNodes();        
+        this.addClientNodes();
+        this.addServices();
+        this.addVmTypes();
         
         this.loadProperties();
         this.loadRequestRatesParameters();
         this.loadVmLifetimeParameters();
+        
+        
+     
     }
    
+        private void addHostNodes(){
+            
+            Properties property = new Properties();
+            InputStream input = null;    
+            String filename = "simulation.properties";
+
+            input = Configuration.class.getClassLoader().getResourceAsStream(filename);
+
+            try {
+                // load a properties file
+                property.load(input);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            hostsNumber=Integer.valueOf(property.getProperty("hostsNumber"));
+
+            String parameter="";
+            String hostName="";
+
+            // InterArrival Time
+            for (int i = 0; i < hostsNumber; i++) {
+                parameter="host_"+i;
+                hostName=String.valueOf((String)property.getProperty(parameter));
+                clientNames.add(hostName);
+            }
+        
+        }
     
+        
+        
+        
+        
+        
+        private void addClientNodes() {
+            
+            Properties property = new Properties();
+            InputStream input = null;    
+            String filename = "simulation.properties";
+
+            input = Configuration.class.getClassLoader().getResourceAsStream(filename);
+
+            try {
+                // load a properties file
+                property.load(input);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            clientsNumber=Integer.valueOf(property.getProperty("clientsNumber"));
+
+            String parameter="";
+            String clientName="";
+
+            // InterArrival Time
+            for (int i = 0; i < clientsNumber; i++) {
+                parameter="client_"+i;
+                clientName=String.valueOf((String)property.getProperty(parameter));
+                clientNames.add(clientName);
+            }
+          
+        }
+
+        private void addServices() {
+         
+            Properties property = new Properties();
+            InputStream input = null;    
+            String filename = "simulation.properties";
+
+            input = Configuration.class.getClassLoader().getResourceAsStream(filename);
+
+            try {
+                // load a properties file
+                property.load(input);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            servicesNumber=Integer.valueOf(property.getProperty("servicesNumber"));
+
+            String parameter="";
+            String serviceName="";
+
+            // InterArrival Time
+            for (int i = 0; i < servicesNumber; i++) {
+                parameter="service_"+i;
+                serviceName=String.valueOf((String)property.getProperty(parameter));
+                servicesNames.add(serviceName);
+            }
+
+        }
+    
+        private void addVmTypes() {
+
+             Properties property = new Properties();
+            InputStream input = null;    
+            String filename = "simulation.properties";
+
+            input = Configuration.class.getClassLoader().getResourceAsStream(filename);
+
+            try {
+                // load a properties file
+                property.load(input);
+            } catch (IOException ex) {
+                Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            vmTypesNumber=Integer.valueOf(property.getProperty("vmTypesNumber"));
+
+            String parameter="";
+            String vmTypeName="";
+
+            // InterArrival Time
+            for (int i = 0; i < vmTypesNumber; i++) {
+                parameter="vmType_"+i;
+                vmTypeName=String.valueOf((String)property.getProperty(parameter));
+                vmTypesNames.add(vmTypeName);
+            }
+
+
+        }
+        
+        
     private void loadProperties(){
     
         Properties property = new Properties();
@@ -269,6 +405,22 @@ public class Configuration {
 
     public int getVmTypesNumber() {
         return vmTypesNumber;
+    }
+
+    public List<String> getClientNames() {
+        return clientNames;
+    }
+
+    public List<String> getHostNames() {
+        return hostNames;
+    }
+
+    public List<String> getServicesNames() {
+        return servicesNames;
+    }
+
+    public List<String> getVmTypesNames() {
+        return vmTypesNames;
     }
 
     

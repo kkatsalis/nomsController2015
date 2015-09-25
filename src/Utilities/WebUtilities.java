@@ -83,7 +83,7 @@ public class WebUtilities {
         return methodResponse;
     }
     
-    public String startVM(String vmName, String hostName) throws IOException{
+    public boolean startVM(String vmName, String hostName) throws IOException{
     
         //http://nitlab3.inf.uth.gr:4100/vm-start/server-john
         
@@ -100,25 +100,29 @@ public class WebUtilities {
 
         try {
 
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
+//            System.out.println(response.getProtocolVersion());
+//            System.out.println(response.getStatusLine().getStatusCode());
+//            System.out.println(response.getStatusLine().getReasonPhrase());
+//            System.out.println(response.getStatusLine().toString());
+//            
+            if(response.getStatusLine().toString().contains("200"))
+                return true;
 
         } 
         finally {
             response.close();
         }
         
-        return methodResponse;
+        return false;
     }
     
-    public String deleteVM(String name) throws IOException{
+    public String deleteVM(String vmName,String hostName) throws IOException{
       
         String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/vm-destroy/";
         String methodResponse="";
         
-        uri+=name;
+        uri+=vmName;
+        uri+="/"+hostName;
         
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpGet httpget = new HttpGet(uri);
@@ -140,9 +144,9 @@ public class WebUtilities {
         return methodResponse;
     }
     
-    public List<VMStats> retrieveVMStatsPerHost(String hostName, int slot) throws IOException{
+    public List<VMStats> retrieveVMStatsPerHost(String hostName, int slot,int instance) throws IOException{
     
-        List<VMStats> statsList=new ArrayList<>();
+        List<VMStats> vmStatsList=new ArrayList<>();
      
         String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4000/vm/";
         uri+=hostName;
@@ -163,23 +167,25 @@ public class WebUtilities {
             for (int i = 0; i < vap_number; ++i) {
                 vm = vmStatsArray.getJSONObject(i);
 
-                statsList.add(new VMStats());
+                vmStatsList.add(new VMStats());
 
-                statsList.get(i).setSlot(slot);
-                statsList.get(i).setDomain_ID(vm.getString("Domain_ID"));
-                statsList.get(i).setDomain_name(vm.getString("Domain_name"));
-                statsList.get(i).setCPU_ns(vm.getString("CPU_ns"));
-                statsList.get(i).setCPU_percentage(vm.getString("CPU_percentage"));
-                statsList.get(i).setMem_bytes(vm.getString("Mem_bytes"));  
-                statsList.get(i).setMem_percentage(vm.getString("Mem_percentage")); 
-                statsList.get(i).setBlock_RDRQ(vm.getString("Block_RDRQ"));
-                statsList.get(i).setBlock_WRRQ(vm.getString("Block_WRRQ"));
-                statsList.get(i).setNet_RXBY(vm.getString("Net_RXBY"));
-                statsList.get(i).setNet_TXBY(vm.getString("Net_TXBY"));
-                statsList.get(i).getNetRates().setKbps_in(vm.getDouble("Kbps in"));
-                statsList.get(i).getNetRates().setKbps_out(vm.getDouble("Kbps out"));
-                statsList.get(i).getNetRates().setInterface(vm.getString("interface"));
-                statsList.get(i).getNetRates().setTimeStamp(vm.getString("timestamp"));
+                vmStatsList.get(i).setSlot(slot);
+                vmStatsList.get(i).setInstance(instance);
+                vmStatsList.get(i).setHostName(hostName);
+                vmStatsList.get(i).setDomain_ID(vm.getString("Domain_ID"));
+                vmStatsList.get(i).setDomain_name(vm.getString("Domain_name"));
+                vmStatsList.get(i).setCPU_ns(vm.getString("CPU_ns"));
+                vmStatsList.get(i).setCPU_percentage(vm.getString("CPU_percentage"));
+                vmStatsList.get(i).setMem_bytes(vm.getString("Mem_bytes"));  
+                vmStatsList.get(i).setMem_percentage(vm.getString("Mem_percentage")); 
+                vmStatsList.get(i).setBlock_RDRQ(vm.getString("Block_RDRQ"));
+                vmStatsList.get(i).setBlock_WRRQ(vm.getString("Block_WRRQ"));
+                vmStatsList.get(i).setNet_RXBY(vm.getString("Net_RXBY"));
+                vmStatsList.get(i).setNet_TXBY(vm.getString("Net_TXBY"));
+                vmStatsList.get(i).getNetRates().setKbps_in(vm.getDouble("Kbps in"));
+                vmStatsList.get(i).getNetRates().setKbps_out(vm.getDouble("Kbps out"));
+                vmStatsList.get(i).getNetRates().setInterface(vm.getString("interface"));
+                vmStatsList.get(i).getNetRates().setTimeStamp(vm.getString("timestamp"));
                 
             }
         } 
@@ -190,10 +196,10 @@ public class WebUtilities {
             response.close();
         }
     
-        return statsList;
+        return vmStatsList;
     }
     
-     public Hashtable retrieveHostStats(String hostName, int slot) throws IOException, JSONException{
+    public Hashtable retrieveHostStats(String hostName, int slot) throws IOException, JSONException{
     
         List<NetRateStats> netRates=new ArrayList<>();
         Hashtable parameters=new Hashtable();
@@ -276,7 +282,6 @@ public class WebUtilities {
      
     }
     
-     
     public boolean checkVMListOnHost(String hostName, String vmName) throws IOException{
     
          

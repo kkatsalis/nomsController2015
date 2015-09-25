@@ -5,11 +5,6 @@
  */
 package Controller;
 
-import Enumerators.EVMType;
-import Utilities.Utilities;
-import Enumerators.EServiceType;
-import java.util.Random;
-
 /**
  *
  * @author kostas
