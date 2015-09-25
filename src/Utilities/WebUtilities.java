@@ -140,7 +140,7 @@ public class WebUtilities {
         return methodResponse;
     }
     
-    public List<VMStats> updateVMStats(String hostName,int instance, int slot) throws IOException{
+    public List<VMStats> retrieveVMStatsPerHost(String hostName, int slot) throws IOException{
     
         List<VMStats> statsList=new ArrayList<>();
      
@@ -166,7 +166,6 @@ public class WebUtilities {
                 statsList.add(new VMStats());
 
                 statsList.get(i).setSlot(slot);
-                statsList.get(i).setSlot(instance);
                 statsList.get(i).setDomain_ID(vm.getString("Domain_ID"));
                 statsList.get(i).setDomain_name(vm.getString("Domain_name"));
                 statsList.get(i).setCPU_ns(vm.getString("CPU_ns"));
@@ -182,9 +181,6 @@ public class WebUtilities {
                 statsList.get(i).getNetRates().setInterface(vm.getString("interface"));
                 statsList.get(i).getNetRates().setTimeStamp(vm.getString("timestamp"));
                 
-                
-                
-                
             }
         } 
         catch(Exception ex){
@@ -197,8 +193,10 @@ public class WebUtilities {
         return statsList;
     }
     
-     public void updateHostStats(String hostName,int instance, int slot) throws IOException{
+     public Hashtable retrieveHostStats(String hostName, int slot) throws IOException, JSONException{
     
+        List<NetRateStats> netRates=new ArrayList<>();
+        Hashtable parameters=new Hashtable();
         
         String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/host/";
         uri+=hostName;
@@ -206,7 +204,13 @@ public class WebUtilities {
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpGet httpget = new HttpGet(uri);
         CloseableHttpResponse response = httpclient.execute(httpget);
-
+        
+        
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+  
         try {
 
             String json="";
@@ -219,11 +223,47 @@ public class WebUtilities {
              
             JSONObject body=new JSONObject(json);
              
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-
+            body.getString("hw_mode");
+                                 
+            JSONArray interfacesArray=body.getJSONArray("net rate");
+           
+            int interfacesNumber=interfacesArray.length();
+             
+            JSONObject interfaceStats ;
+            
+            for (int i = 0; i < interfacesNumber; ++i) {
+                interfaceStats = interfacesArray.getJSONObject(i);
+            
+                netRates.add(new NetRateStats());
+           
+                netRates.get(i).setInterface(interfaceStats.getString("interface"));
+                netRates.get(i).setTimeStamp(interfaceStats.getString("timestamp"));
+                netRates.get(i).setKbps_in(interfaceStats.getDouble("Kbps in"));
+                netRates.get(i).setKbps_out(interfaceStats.getDouble("Kbps out"));
+            }
+            
+            
+            parameters.put("slot",slot);
+            parameters.put("Hostname", hostName);
+            parameters.put("Time",body.getString("Time") );
+            parameters.put("Arch",body.getString("Arch") );
+            parameters.put("Physical_CPUs",body.getString("Physical_CPUs") );
+            parameters.put("Count",body.getString("Count") );
+            parameters.put("Running",body.getString("Running") );
+            parameters.put("Blocked",body.getString("Blocked") );
+            parameters.put("Paused",body.getString("Paused") );
+            parameters.put("Shutdown",body.getString("Shutdown") );
+            parameters.put("Shutoff",body.getString("Shutoff") );
+            parameters.put("Crashed",body.getString("Crashed") );
+            parameters.put("Active",body.getString("Active") );
+            parameters.put("Inactive",body.getString("Inactive") );
+            parameters.put("CPU_percentage",body.getString("CPU_percentage") );
+            parameters.put("Total_hardware_memory_KB",body.getString("Total_hardware_memory_KB") );
+            parameters.put("Total_memory_KB",body.getString("Total_memory_KB") );
+            parameters.put("Total_guest_memory_KB",body.getString("Total_guest_memory_KB") );
+            parameters.put("netRates",netRates);
+            
+            return parameters;
         } 
         catch(Exception ex){
             System.out.println(ex.getMessage());
@@ -231,7 +271,8 @@ public class WebUtilities {
         finally {
             response.close();
         }
-    
+        
+       return null;
      
     }
     
@@ -254,7 +295,6 @@ public class WebUtilities {
                 if(output.contains(vmName))
                 return true;
             }
-            
             
             return false;
         

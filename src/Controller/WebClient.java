@@ -29,7 +29,7 @@ public class WebClient {
         
         abStats=new ABStats();
         vlcStats=new VLCStats();
-        netRateStats=new NetRateStats("wlan0");
+        netRateStats=new NetRateStats();
     }
 
     public String getNodeName() {

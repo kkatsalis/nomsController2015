@@ -14,6 +14,7 @@ import java.util.List;
  */
 public class HostStats {
    
+    int  slot;
     String Hostname;
     String Time;
     String Arch;
@@ -36,9 +37,7 @@ public class HostStats {
     public HostStats(){
         
         netRates=new ArrayList<>();
-        netRates.add(new NetRateStats("eth1"));
-        netRates.add(new NetRateStats("wlan0"));
-    
+        
     }
     
     
@@ -184,6 +183,10 @@ public class HostStats {
 
     public void setNetRates(List<NetRateStats> netRates) {
         this.netRates = netRates;
+    }
+
+    public void setSlot(int slot) {
+        this.slot = slot;
     }
     
     

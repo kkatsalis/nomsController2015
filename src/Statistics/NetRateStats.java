@@ -16,10 +16,7 @@ public class NetRateStats {
     double _Kbps_in;
     double _Kbps_out;
 
-    public NetRateStats(String intrface){
     
-        this._interface=intrface;
-    }
     public String getInterface() {
         return _interface;
     }
@@ -51,6 +48,8 @@ public class NetRateStats {
     public void setInterface(String _interface) {
         this._interface = _interface;
     }
+
+    
     
     
 }

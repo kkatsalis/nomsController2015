@@ -21,7 +21,7 @@ public class Host {
     List<VM> _activeVMs;    // A list with VMs per Host Machine;
     List<VM> _closedVMs;    // A list with VMs per Host Machine;
     
-    List<HostStats> _hostStats;
+    List<HostStats> _hostStats; // A number of measurements is taken for every Host per Slot
     
     public Host(Configuration config,String nodeName) {
         
@@ -37,5 +37,10 @@ public class Host {
         return _nodeName;
     }
 
+    public List<HostStats> getHostStats() {
+        return _hostStats;
+    }
+
+    
     
 }
