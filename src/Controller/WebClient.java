@@ -8,6 +8,7 @@ package Controller;
 import Statistics.ABStats;
 import Statistics.NetRateStats;
 import Statistics.VLCStats;
+import java.util.List;
 
 /**
  *
@@ -21,12 +22,14 @@ public class WebClient {
     ABStats abStats;
     VLCStats vlcStats;
     NetRateStats netRateStats;
-
-    public WebClient(Configuration config, String nodeName) {
+    
+    Host[] _hosts;
+    
+    public WebClient(Configuration config, String nodeName, Host[] hosts) {
         
         this._config=config;
         this._nodeName=nodeName;
-        
+        this._hosts=hosts;
         abStats=new ABStats();
         vlcStats=new VLCStats();
         netRateStats=new NetRateStats();

@@ -20,8 +20,8 @@ public class Slot {
     long startTime;
     long endTime;
     Configuration _config;
-    List<VMRequest>[] _vmRequests2Activate;
-    List<VMRequest>[] _vmRequests2Remove;
+    List<VMRequest>[] _vmRequests2Activate; //list per provider
+    List<VMRequest>[] _vmRequests2Remove;   //list per provider
     
     public Slot(int id,Configuration config){
     

@@ -88,7 +88,7 @@ public class Configuration {
             for (int i = 0; i < hostsNumber; i++) {
                 parameter="host_"+i;
                 hostName=String.valueOf((String)property.getProperty(parameter));
-                clientNames.add(hostName);
+                hostNames.add(hostName);
             }
         
         }

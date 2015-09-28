@@ -31,7 +31,7 @@ public class Simulator {
     /**
      * @param args the command line arguments
      */
-       static int slot=0;
+       int slot=0;
        
        Configuration _config;
        
@@ -69,7 +69,8 @@ public class Simulator {
            
            this._config=new Configuration();
            this._hostNames=_config.getHostNames();
-    
+           this._clientNames=_config.getClientNames();
+           
            this._hosts=new Host[_config.getHostNames().size()];
            this._clients=new WebClient[_config.getClientNames().size()];
            
@@ -179,7 +180,7 @@ public class Simulator {
             }
             
             for (int i = 0; i < _clients.length; i++) {
-                _clients[i]=new WebClient(_config,_clientNames.get(i));
+                _clients[i]=new WebClient(_config,_clientNames.get(i),_hosts);
             }
             
             
