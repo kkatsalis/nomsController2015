@@ -10,66 +10,23 @@ package Utilities;
  * @author kostas
  */
 
+import Controller.Configuration;
 import ilog.concert.*;
 import ilog.cplex.*;
 
 
 public class Scheduler {
-	static class Data {
-		int N; // # of APs
-		int P; // # of service providers
-		int S; // # of services
-		int V; // # of VM types
-		double[] r; // requests per service provider
-		int R; // # of physical resources per physical machine
-		double[] phi; // fairness weight per provider
-		double[][] m; // m[v][k]: amount of each resource k for each VM type v
-		double[][] p; // p[i][k]: capacity of each resource k at each AP i
-		double[][] pen; // pen[j][s] penalty for not satisfying locally a request for service s of provider j
-		double[][][] A; // A[j][v][s]: # of new requests for VMs of type v for service s of provider j
-		double[][][][] D; // D[i][j][v][s]: # of removed VMs of type v for service s of provider j from AP i
-		double[][][][] n; // n[i][j][v][s]: # of allocated VMs of type v for service s of provider j at AP i
-		final double Omega = 100;
-
-
-
-		double ksi(int s, int j, int v)
-		{
-			return 100*(v+1);
-		}
-
-		double[] f(double r, int s, int j)
-		{
-			double[] unitVector = new double[V];
-			unitVector[s] = 1;
-
-			unitVector[s] = (((int)r/ksi(s,j,s))+1)*unitVector[s];
-
-			return unitVector;
-		}
-
-
-
-		public Data(int S, int P, int V, int N, int R, double[] r, double[][] m, double [][] p, double [][] pen, double[][][] A, double[][][][] D, double[][][][] n, double[] phi)
-		{
-			this.S = S; 
-			this.P = P; 
-			this.V = V;
-			this.N = N;
-			this.R = R;
-			this.r = r;
-			this.m = m;
-			this.p = p;
-			this.pen = pen;
-			this.A = A;
-			this.D = D;
-			this.n = n;
-			this.phi = phi;
-		}
-	}
-	static void buildModelByRow(IloModeler    model,
-			Data          data,
-			IloNumVar[][][][]   a,
+	
+        Configuration config;
+        
+        public Scheduler(Configuration config){
+            
+            this.config=config;
+        }
+        
+	private void buildModelByRow(IloModeler model,
+			SchedulerData  data,
+			IloNumVar[][][][] a,
 			IloNumVarType type) throws IloException {
 
 		for (int i = 0; i < data.N; i++)
@@ -210,42 +167,20 @@ public class Scheduler {
 	}
 
 
+	public void Run() {
 
-
-	public static void main(String[] args) {
-
-		int S = 3;
-		int P = 5;
-		int V = 3;
-		int N = 3;
-		int R = 2;
-		int capacity = 1000;
-
-		double[] phi = new double[P];
-		for (int j=0;j<P;j++)
-			phi[j] = 1;
-
-		double[] r = new double [P];
-		double[][] m = new double[V][R];
-
-		for (int v=0;v<V;v++)
-			for (int k=0;k<R;k++)
-				m[v][k] = 2*(v+1);
-
+		int S = config.getServicesNumber();
+		int P = config.getProvidersNumber();
+		int V = config.getVmTypesNumber();
+		int N = config.getHostsNumber();
+		
+                
+                double[] r = new double [P]; // requests per service provider
 		for (int j=0;j<P;j++)
 			r[j] = 100*(j+1);
 
-		double[][] p = new double[N][R];
-		for (int i=0;i<N;i++)
-			for (int k=0;k<R;k++)
-				p[i][k] = capacity;
-
-		double[][] pen = new double[P][S];
-		for (int j=0;j<P;j++)
-			for (int s=0;s<S;s++)
-				pen[j][s] = 10*(s+1);
-
-		double[][][] A = new double[P][V][S];
+		
+		double[][][] A = new double[P][V][S]; // A[j][v][s]: # of new requests for VMs of type v for service s of provider j
 
 		for (int j=0;j<P;j++)
 			for (int v=0;v<V;v++)
@@ -253,8 +188,8 @@ public class Scheduler {
 					A[j][v][s] = 5;
 
 
-		double[][][][] n = new double [N][P][V][S];
-		double[][][][] D = new double [N][P][V][S];
+		double[][][][] n = new double [N][P][V][S]; // n[i][j][v][s]: # of allocated VMs of type v for service s of provider j at AP i
+		double[][][][] D = new double [N][P][V][S]; // D[i][j][v][s]: # of removed VMs of type v for service s of provider j from AP i
 
 		for (int i=0;i<N;i++)
 			for (int j=0;j<P;j++)
@@ -265,13 +200,12 @@ public class Scheduler {
 						D[i][j][v][s] = 1;
 					}
 
-
 		try {
-			Data data = new Data(S, P, V, N, R,  r, m, p, pen, A, D, n, phi);
+			SchedulerData data = new SchedulerData(config, r, A, D, n);
 
 			// Build model
 			IloCplex     cplex = new IloCplex();
-			IloNumVar[][][][]  a   = new IloNumVar[data.N][data.P][data.V][data.S];
+			IloNumVar[][][][]  a   = new IloNumVar[config.getHostsNumber()][config.getProvidersNumber()][config.getVmTypesNumber()][config.getServicesNumber()];
 
 			IloNumVarType   varType   = IloNumVarType.Float;
 
@@ -286,10 +220,10 @@ public class Scheduler {
 				System.out.println("Solution status = " + cplex.getStatus());
 				System.out.println();
 				System.out.println(" cost = " + cplex.getObjValue());
-				for (int i = 0; i < data.N; i++) {
-					for (int j=0;j < data.P; j++)
-						for (int v=0;v < data.V; v++)
-							for (int s=0;s < data.S; s++)
+				for (int i = 0; i < config.getHostsNumber(); i++) {
+					for (int j=0;j < config.getProvidersNumber(); j++)
+						for (int v=0;v < config.getVmTypesNumber(); v++)
+							for (int s=0;s < config.getServicesNumber(); s++)
 								System.out.println(" a[" + i + "],["+j+"]["+v+"]["+s+"] = " + cplex.getValue(a[i][j][v][s]));
 				}
 				System.out.println();
@@ -302,11 +236,7 @@ public class Scheduler {
 
 	}
 
-	static void usage() {
-		System.out.println(" ");
-		System.out.println("usage: java Lyapunov ");
-		System.out.println(" ");
-	}
+	
 }
 
 

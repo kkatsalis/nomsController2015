@@ -11,6 +11,9 @@ package Statistics;
  */
 public class ABStats {
 
+int slot;
+int measurement;
+
 String Server_Software;
 String Server_Hostname;
 int Server_Port;

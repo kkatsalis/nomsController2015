@@ -5,6 +5,7 @@
  */
 package Controller;
 
+import Enumerators.EMachineTypes;
 import Statistics.HostStats;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +23,14 @@ public class Host {
     List<VM> _VMs;    // A list with VMs per Host Machine;
     
     List<HostStats> _hostStats; // A number of measurements is taken for every Host per Slot
+    Resources _resources;
     
     public Host(int hostId,Configuration config,String nodeName) {
         
         this.hostID=hostId;
         this._config=config;
         this._nodeName=nodeName;
+        this._resources=new Resources(EMachineTypes.Host.toString(),config);
         
         this._VMs=new ArrayList<>();     // A list with VMs per Host Machine;
         this._hostStats=new ArrayList<>();

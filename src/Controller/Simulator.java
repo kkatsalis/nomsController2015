@@ -237,7 +237,7 @@ public class Simulator {
         
         if(slot2AddVM<_config.getNumberOfSlots()){
             requestIDs++;
-            VMRequest newRequest = new VMRequest(providerID,requestIDs,lifetime);
+            VMRequest newRequest = new VMRequest(_config,providerID,requestIDs,lifetime);
 
             newRequest.setVmType(Utilities.determineVMType(providerID,_config));
             newRequest.setService(Utilities.determineVMService(providerID,_config));
