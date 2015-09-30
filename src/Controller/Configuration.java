@@ -57,13 +57,18 @@ public class Configuration {
     
     double[][] penalty; //[i][k] provider i, service k
     
+    int abRequestsNumber=1000;
+    int abBatchRequestsNumber=100;
+    HashMap associatedAPsPerClient;
+            
     public Configuration() {
   
         this.clientNames=new ArrayList<>();
         this.hostNames=new ArrayList<>();
         this.servicesNames=new ArrayList<>();
         this.vmTypesNames=new ArrayList<>();
-        
+        this.associatedAPsPerClient=new HashMap();
+                
         this.addHostNodes();        
         this.addClientNodes();
         this.addServices();
@@ -132,12 +137,18 @@ public class Configuration {
 
             String parameter="";
             String clientName="";
-
+            String associatedAP;
+            
             // InterArrival Time
             for (int i = 0; i < clientsNumber; i++) {
                 parameter="client_"+i;
                 clientName=String.valueOf((String)property.getProperty(parameter));
                 clientNames.add(clientName);
+                
+                parameter="client_"+i+"_ap";
+                associatedAP=String.valueOf((String)property.getProperty(parameter));
+                associatedAPsPerClient.put(parameter, associatedAP);
+                
             }
           
         }
@@ -221,10 +232,12 @@ public class Configuration {
             slotDurationMetric=String.valueOf(property.getProperty("slotDurationMetric"));
             statsUpdatesPerSlot=Integer.valueOf(property.getProperty("statsUpdatesPerSlot"));
             machineResourcesNumber=Integer.valueOf(property.getProperty("machineResourcesNumber"));
-            }
-             catch (Exception e) {
-                System.out.println(e.toString());
-            }
+            abRequestsNumber=Integer.valueOf(property.getProperty("abRequestsNumber"));
+            abBatchRequestsNumber=Integer.valueOf(property.getProperty("abBatchRequestsNumber"));
+        }
+        catch (Exception e) {
+            System.out.println(e.toString());
+        }
     
     }
 
@@ -255,10 +268,10 @@ public class Configuration {
     
       private void loadResources() {
         
-        double[] cpu_VM=new double [vmTypesNumber];
-        double[] memory_VM=new double [vmTypesNumber];
-        double[] storage_VM=new double [vmTypesNumber];
-        double[] bandwidth_VM=new double [vmTypesNumber];
+        cpu_VM=new double [vmTypesNumber];
+        memory_VM=new double [vmTypesNumber];
+        storage_VM=new double [vmTypesNumber];
+        bandwidth_VM=new double [vmTypesNumber];
         
         Properties property = new Properties();
         InputStream input = null;    
@@ -340,7 +353,7 @@ public class Configuration {
         
             for (int i = 0; i < providersNumber; i++) {
                 for (int j = 0; j < servicesNumber; j++) {
-                    parameter="penaly_p"+i+"s"+j;
+                    parameter="penalty_p"+i+"_s"+j;
                     penalty[i][j]=Double.valueOf((String)property.getProperty(parameter));
                 }
                
@@ -619,11 +632,18 @@ public class Configuration {
         return penalty;
     }
 
-    
+    public int getAbRequestsNumber() {
+        return abRequestsNumber;
+    }
 
-  
+    public int getAbBatchRequestsNumber() {
+        return abBatchRequestsNumber;
+    }
 
-    
+    public HashMap getAssociatedAPsPerClient() {
+        return associatedAPsPerClient;
+    }
+
     
     
     

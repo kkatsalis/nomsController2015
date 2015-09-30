@@ -12,7 +12,8 @@ package Controller;
 public class VMRequest {
     
     int providerID;
-    int requestID=0;
+    int requestID;
+    static int id=100;
     int slotStart;
     int slotEnd;
     
@@ -23,12 +24,13 @@ public class VMRequest {
     Resources resources;
     Configuration config;
     
-    public VMRequest(Configuration config, int providerID,int requestID, int lifetime) {
+    public VMRequest(Configuration config, int providerID, int lifetime) {
         
         this.config=config;
         this.providerID = providerID;
         this.lifetime=lifetime;
-        this.requestID=requestID;
+        id++;
+        this.requestID=id;
         
     
     }

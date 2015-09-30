@@ -50,7 +50,7 @@ public class Utilities {
         Hashtable parameters=new Hashtable();
         int y=vmRequest.getRequestID();
         
-        String vmName="host_"+hostName+"_vm_"+String.valueOf(vmRequest.getProviderID())+"_"+String.valueOf(vmRequest.getRequestID());
+        String vmName=hostName+"p"+String.valueOf(vmRequest.getProviderID())+"r"+String.valueOf(vmRequest.getRequestID());
         
         parameters.put("hostName",hostName);
         parameters.put("vmName",vmName);

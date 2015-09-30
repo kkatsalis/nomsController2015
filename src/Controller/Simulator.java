@@ -45,7 +45,6 @@ public class Simulator {
        Slot[] _slots;
        
         Controller _controller;
-        int requestIDs;
         
        // How to create requests per Service Domain, one per provider
         String[] _rateGeneratorType; 
@@ -57,9 +56,7 @@ public class Simulator {
         Exponential[] _lifetimeExponentialGenerator;
         Pareto[] _lifetimeParetoGenerator;
 
-        
         Random rand;
-        
         Timer timer;
   
         long experimentStart;
@@ -74,7 +71,6 @@ public class Simulator {
            this._hosts=new Host[_config.getHostNames().size()];
            this._clients=new WebClient[_config.getClientNames().size()];
            
-           this.requestIDs=0;
            
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
@@ -180,7 +176,7 @@ public class Simulator {
             }
             
             for (int i = 0; i < _clients.length; i++) {
-                _clients[i]=new WebClient(_config,_clientNames.get(i),_hosts);
+                _clients[i]=new WebClient(_config,i,_clientNames.get(i),_hosts);
             }
             
             
@@ -228,7 +224,10 @@ public class Simulator {
         int slot2RemoveVM=0;
         
         int lifetime=calculateVMLifeTime(providerID);
-       
+            
+        if(lifetime<1)
+                lifetime=1;
+        
          // Slot calculation
         int slotDistance= calculateNextSlotTime(providerID);
         
@@ -236,8 +235,8 @@ public class Simulator {
         slot2RemoveVM=slot2AddVM+lifetime;
         
         if(slot2AddVM<_config.getNumberOfSlots()){
-            requestIDs++;
-            VMRequest newRequest = new VMRequest(_config,providerID,requestIDs,lifetime);
+            
+            VMRequest newRequest = new VMRequest(_config,providerID,lifetime);
 
             newRequest.setVmType(Utilities.determineVMType(providerID,_config));
             newRequest.setService(Utilities.determineVMService(providerID,_config));
@@ -245,18 +244,15 @@ public class Simulator {
 
             //add vm during this slot
             newRequest.setSlotStart(slot2AddVM);
+             _slots[slot2AddVM].getVmRequests2Activate()[providerID].add(newRequest);
+             
              //remove vm during this slot
             newRequest.setSlotEnd(slot2RemoveVM);
-
-            //Update Slot Lists
-            
-                _slots[slot2AddVM].getVmRequests2Activate()[providerID].add(newRequest);
-        
             if(slot2RemoveVM<_config.getNumberOfSlots())
                 _slots[slot2RemoveVM].getVmRequests2Remove()[providerID].add(newRequest); 
         }
         else
-            System.out.println("failed to add: "+requestIDs );
+            System.out.println("failed to add request" );
          
         
         

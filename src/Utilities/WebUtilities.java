@@ -6,6 +6,7 @@
 package Utilities;
 
 import Controller.Configuration;
+import Statistics.ABStats;
 import Statistics.NetRateStats;
 import Statistics.VMStats;
 import com.google.gson.JsonArray;
@@ -72,13 +73,14 @@ public class WebUtilities {
             System.out.println(response.getStatusLine().getReasonPhrase());
             System.out.println(response.getStatusLine().toString());
 
+            if(response.getStatusLine().toString().contains("200"))
+                methodResponse=true;
         } 
         finally {
             response.close();
         }
 
-        if(response.getStatusLine().toString()=="200")
-            methodResponse=true;
+       
         
         return methodResponse;
     }
@@ -282,6 +284,90 @@ public class WebUtilities {
      
     }
     
+    public ABStats retrieveABStatsperClient(String clientName,String apName){
+    
+//        ABStats abStats=new ABStats();
+//        
+//        String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/host/";
+//        uri+=hostName;
+//        
+//        CloseableHttpClient httpclient = HttpClients.createDefault();
+//        HttpGet httpget = new HttpGet(uri);
+//        CloseableHttpResponse response = httpclient.execute(httpget);
+//        
+//        
+//        System.out.println(response.getProtocolVersion());
+//        System.out.println(response.getStatusLine().getStatusCode());
+//        System.out.println(response.getStatusLine().getReasonPhrase());
+//        System.out.println(response.getStatusLine().toString());
+//  
+//        try {
+//
+//            String json="";
+//            String output;
+//            BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
+//            
+//             while ((output = br.readLine()) != null) {
+//               json+=output;
+//            }
+//             
+//            JSONObject body=new JSONObject(json);
+//             
+//            body.getString("hw_mode");
+//                                 
+//            JSONArray interfacesArray=body.getJSONArray("net rate");
+//           
+//            int interfacesNumber=interfacesArray.length();
+//             
+//            JSONObject interfaceStats ;
+//            
+//            for (int i = 0; i < interfacesNumber; ++i) {
+//                interfaceStats = interfacesArray.getJSONObject(i);
+//            
+//                netRates.add(new NetRateStats());
+//           
+//                netRates.get(i).setInterface(interfaceStats.getString("interface"));
+//                netRates.get(i).setTimeStamp(interfaceStats.getString("timestamp"));
+//                netRates.get(i).setKbps_in(interfaceStats.getDouble("Kbps in"));
+//                netRates.get(i).setKbps_out(interfaceStats.getDouble("Kbps out"));
+//            }
+//            
+//            
+//            parameters.put("slot",slot);
+//            parameters.put("Hostname", hostName);
+//            parameters.put("Time",body.getString("Time") );
+//            parameters.put("Arch",body.getString("Arch") );
+//            parameters.put("Physical_CPUs",body.getString("Physical_CPUs") );
+//            parameters.put("Count",body.getString("Count") );
+//            parameters.put("Running",body.getString("Running") );
+//            parameters.put("Blocked",body.getString("Blocked") );
+//            parameters.put("Paused",body.getString("Paused") );
+//            parameters.put("Shutdown",body.getString("Shutdown") );
+//            parameters.put("Shutoff",body.getString("Shutoff") );
+//            parameters.put("Crashed",body.getString("Crashed") );
+//            parameters.put("Active",body.getString("Active") );
+//            parameters.put("Inactive",body.getString("Inactive") );
+//            parameters.put("CPU_percentage",body.getString("CPU_percentage") );
+//            parameters.put("Total_hardware_memory_KB",body.getString("Total_hardware_memory_KB") );
+//            parameters.put("Total_memory_KB",body.getString("Total_memory_KB") );
+//            parameters.put("Total_guest_memory_KB",body.getString("Total_guest_memory_KB") );
+//            parameters.put("netRates",netRates);
+//            
+//            return parameters;
+//        } 
+//        catch(Exception ex){
+//            System.out.println(ex.getMessage());
+//        }
+//        finally {
+//            response.close();
+//        }
+        
+       return null;
+     
+    
+    
+    }
+
     public boolean checkVMListOnHost(String hostName, String vmName) throws IOException{
     
          
@@ -305,6 +391,7 @@ public class WebUtilities {
         
     }
     
+   
     
     
     

@@ -17,7 +17,8 @@ import java.util.List;
 public class WebClient {
     
     Configuration _config;
-    String _nodeName;
+    String _clientName;
+    String _apName;
     
     ABStats abStats;
     VLCStats vlcStats;
@@ -25,19 +26,20 @@ public class WebClient {
     
     Host[] _hosts;
     
-    public WebClient(Configuration config, String nodeName, Host[] hosts) {
+    
+    public WebClient(Configuration config,int id, String clientNodeName, Host[] hosts) {
         
         this._config=config;
-        this._nodeName=nodeName;
+        this._clientName=clientNodeName;
+        this._apName=String.valueOf(config.getAssociatedAPsPerClient().get("client_"+id+"_ap"));
         this._hosts=hosts;
+        
         abStats=new ABStats();
         vlcStats=new VLCStats();
         netRateStats=new NetRateStats();
     }
 
-    public String getNodeName() {
-        return _nodeName;
-    }
+   
 
     public ABStats getAbStats() {
         return abStats;
@@ -51,6 +53,9 @@ public class WebClient {
         return netRateStats;
     }
     
+    public void RunVLCApp(){ 
     
+    
+    }
     
 }

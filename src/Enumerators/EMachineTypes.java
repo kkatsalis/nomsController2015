@@ -11,7 +11,7 @@ package Enumerators;
  */
 public enum EMachineTypes {
 Host,
-SmallVM,
-MediumVM,
-LargeVM
+small,
+medium,
+large
 }

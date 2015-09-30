@@ -99,12 +99,12 @@ public class SchedulerData {
         }
         
         
-        public double ksi(int s, int j, int v)
+        public double ksi(int s, int j, int v) //helper function for denoting capacity of a VM type for the client requests for a service s of a provider j
         {
                 return 100*(v+1);
         }
 
-        public double[] f(double r, int s, int j)
+        public double[] f(double r, int s, int j) // Function for finding the number of requests for VMs of a certain type based on the client requests r for service s of provider j 
         {
                 double[] unitVector = new double[V];
                 unitVector[s] = 1;

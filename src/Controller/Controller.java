@@ -5,6 +5,7 @@
  */
 package Controller;
 
+import Enumerators.EMachineTypes;
 import Enumerators.ESlotDurationMetric;
 import Utilities.WebUtilities;
 import Statistics.VMStats;
@@ -77,28 +78,33 @@ public class Controller {
 
         System.out.println("------- Slot:"+slot);
 
-        startControllerInternalTimer(slot); // for Statistics updates
+ //       startControllerInternalTimer(slot); // for Statistics updates
  
         try {
 
-        deleteVMs(slot);  
+       // deleteVMs(slot);  
  
         loadRequestMatrix(slot);
         runTempScheduler();
        
-        // Start New VMs
-        List<VMRequest> list2Create=null;
+        // New VMs
+        List<VMRequest> list2CreateLocally=null;
+        List<VMRequest> list2Create2Cloud=null;
         VMRequest request=null;
-
+        
+        LoadVM loadObject;
+        Thread thread;
+        
         for (int i = 0; i < _config.getHostsNumber(); i++) {
-             list2Create=CplexSolution2VMRequets(slot, _hosts[i].getHostID());
+             list2CreateLocally=CplexSolution2VMRequets(slot, _hosts[i].getHostID());
 
-             for (Iterator iterator = list2Create.iterator(); iterator.hasNext();) {
+             for (Iterator iterator = list2CreateLocally.iterator(); iterator.hasNext();) {
                 request = (VMRequest) iterator.next();
-
-                LoadVM loadVM=new LoadVM(slot,request,_hosts[i].getNodeName());
-                       loadVM.start();
-
+                
+                loadObject=new LoadVM(slot,request,_hosts[i].getNodeName());
+                thread = new Thread(loadObject);
+                thread.start();
+                
             }
 
         }
@@ -115,18 +121,48 @@ public class Controller {
     // n[i][j][v][s]: # of allocated VMs of type v for service s of provider j at AP i
     private List<VMRequest> CplexSolution2VMRequets(int slot, int hostID){
 
-        int maxVmAllowed=-1;
+        int vms2Load=-1;
                 
         List<VMRequest> vmList2Create=new ArrayList<>();
+        List<VMRequest> listOfRequestedVMs;
+
+        String _vmType="";
+        String _serviceType="";
         
         for (int pro = 0; pro < _config.getProvidersNumber(); pro++) {
+            
+            listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[pro];
+            
             for (int type = 0; type < _config.getVmTypesNumber(); type++) {
+                
+                if(type==0)
+                    _vmType=EMachineTypes.small.toString();
+                else if(type==1)
+                    _vmType=EMachineTypes.medium.toString();
+                else if(type==2)
+                    _vmType=EMachineTypes.large.toString();
+               
                 for (int ser = 0; ser < _config.getServicesNumber(); ser++) {
                     
-                    maxVmAllowed=activationMatrix[type][ser][pro][hostID];
-                                        
-                    if(maxVmAllowed>0)
-                        addVMRquests2SlotSchedulingList(type,ser,pro,maxVmAllowed,vmList2Create, slot);
+                    if(ser==0)
+                        _serviceType="AB";
+                    else if(ser==1)
+                        _serviceType="VLC";
+                      
+                    vms2Load=activationMatrix[type][ser][pro][hostID];
+                    
+                    for(Iterator iterator = listOfRequestedVMs.iterator(); iterator.hasNext();) {
+                       VMRequest nextRequest = (VMRequest)iterator.next();
+         
+                       if(nextRequest.getService().equals(_serviceType)&nextRequest.getVmType().equals(_vmType))
+                       {
+                           if(vms2Load>0){
+                                vmList2Create.add(nextRequest);
+                                vms2Load--;
+                           }
+                       }
+                           
+                    }
                 }
            }
     
@@ -139,15 +175,12 @@ public class Controller {
     private void deleteVMs(int slot) throws IOException {
 
      
-       int vms2DeleteNumber=0; 
+  
        List<Integer> requestID2RemoveThisSlot=new ArrayList<>();
        
        // Step 1: Find RequestIDs to remove
        for (int i = 0; i < _config.getProvidersNumber(); i++) {
-            
-           vms2DeleteNumber=_slots[slot].getVmRequests2Remove()[i].size();
-           
-           for (int j = 0; j < vms2DeleteNumber; j++) {
+           for (int j = 0; j < _slots[slot].getVmRequests2Remove()[i].size(); j++) {
                requestID2RemoveThisSlot.add(_slots[slot].getVmRequests2Remove()[i].get(j).getRequestID());
            }
         }
@@ -206,43 +239,6 @@ public class Controller {
            
     }
 
-    private void addVMRquests2SlotSchedulingList(int vmType, int serviceType, int providerID,int vmAllowed, List<VMRequest> vmList2Create,int slot) {
-       
-        String _vmType="";
-        String _serviceType="";
-       
-        List<VMRequest> listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[providerID];
-        List<VMRequest> tempSpecificList=new ArrayList<>();
-        
-        if(vmType==0)
-            _vmType="Small";
-        else if(vmType==1)
-            _vmType="Medium";
-        else if(vmType==2)
-            _vmType="Large";
-        
-        if(serviceType==0)
-            _serviceType="AB";
-        else if(serviceType==1)
-            _serviceType="VLC";
-
-        // Find vmType and service type specific list
-        for(Iterator iterator = listOfRequestedVMs.iterator(); iterator.hasNext();) {
-            VMRequest nextRequest = (VMRequest)iterator.next();
-            if(nextRequest.getService().equals(_serviceType)&nextRequest.getVmType().equals(_vmType))
-                tempSpecificList.add(nextRequest);
-        }
-
-        
-        while(vmAllowed>0){
-            vmList2Create.add(tempSpecificList.remove(0));
-            vmAllowed--;
-        }
-        
-        
-        
-    }
-
     private void loadRequestMatrix(int slot) {
         
         List<VMRequest> listOfRequestedVMs=null;
@@ -254,11 +250,11 @@ public class Controller {
             listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[pro];
             
             for (VMRequest nextRequest : listOfRequestedVMs) {
-                if("Small".equals(nextRequest.getVmType()))
+                if(EMachineTypes.small.toString().equals(nextRequest.getVmType()))
                     typeID=0;
-                else if("Medium".equals(nextRequest.getVmType()))
+                else if(EMachineTypes.medium.toString().equals(nextRequest.getVmType()))
                     typeID=1;
-                else if("Large".equals(nextRequest.getVmType()))
+                else if(EMachineTypes.large.toString().equals(nextRequest.getVmType()))
                     typeID=2;
                 
                 if("AB".equals(nextRequest.getService()))
@@ -341,7 +337,7 @@ public class Controller {
     
     }
     
-    class LoadVM implements Runnable{
+    public class LoadVM implements Runnable{
         
         private Thread _thread;
         private final String threadName;
@@ -350,25 +346,29 @@ public class Controller {
         
         public boolean loaded=false;
         int slot;
-        
+        Hashtable hostVMpair;
+         
         LoadVM(int slot,VMRequest request,String hostName){
         
            this.slot=slot;
            this.hostName=hostName;
            this.request=request;
            this.threadName = hostName+"-"+request.getRequestID();
+           this. hostVMpair=new Hashtable();
            
            System.out.println("Creating " +  threadName );
         }
         
         public void run() {
               
-              try {
+            try {
                 
                     System.out.println("Load VM Thread: " + threadName + " started");
                     
-                    createAndStartVM(slot,request,hostName); 
-                   
+                    createVM(slot,request,hostName); 
+                    startVM(request,hostName);
+                    createVMobject(slot,request,hostName);
+                    
                     Thread.sleep(0);
                  
              } catch (Exception e) {
@@ -379,18 +379,10 @@ public class Controller {
              loaded=true;
            }
 
-        public void start ()
-        {
-              System.out.println("Starting " +  threadName );
-              if (_thread == null)
-              {
-                 _thread = new Thread (this, threadName);
-                 _thread.start ();
-              }
-        }
+        
 
        
-        private boolean createAndStartVM(int slot,VMRequest request,String nodeName) throws IOException {
+        private boolean createVM(int slot,VMRequest request,String nodeName) throws IOException {
      
             Hashtable vmParameters;
 
@@ -402,42 +394,52 @@ public class Controller {
 
             //Step 1: Add VM on the Physical node
             vmParameters=Utilities.determineVMparameters(request,nodeName);
+            vmCreateCommandSend=_webUtilities.createVM(vmParameters);
 
+ 
+            return vmCreateCommandSend;
+     
+     
+    }
+
+        private void startVM(VMRequest request, String hostName) throws IOException {
+          
+            Boolean vmCreated=false;
+            Hashtable  vmParameters=Utilities.determineVMparameters(request,hostName);
+            int counter=0;
+            
             while(!vmCreated){
-
-                vmCreateCommandSend=_webUtilities.createVM(vmParameters);
-
-                if(vmCreateCommandSend){
-                    vmCreated=_webUtilities.checkVMListOnHost(nodeName,String.valueOf(vmParameters.get("vmName")));
-
-                }
-
+                
+                vmCreated=_webUtilities.checkVMListOnHost(hostName,String.valueOf(vmParameters.get("vmName")));
+                System.out.println("attempt:"+ counter);
+                
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+    // handle the exception...        
+    // For example consider calling Thread.currentThread().interrupt(); here.
+}
+                counter++;
             }
 
             String vmName=String.valueOf(vmParameters.get("vmName"));
-            boolean started=_webUtilities.startVM(vmName,nodeName);
+            _webUtilities.startVM(vmName,hostName);
+            
+        }
 
-            //Step 2: Add VM on the Active VMs List on the Host Object
-            if(started){
-                for (int i = 0; i < _hosts.length; i++) {
-                    if(_hosts[i].getNodeName().equals(nodeName))
+        private void createVMobject(int slot, VMRequest request, String hostName) {
+           
+            Hashtable  vmParameters=Utilities.determineVMparameters(request,hostName);
+            
+            for (int i = 0; i < _hosts.length; i++) {
+                    if(_hosts[i].getNodeName().equals(hostName))
                     {
                         _hosts[i].getVMs().add(new VM(vmParameters,request,slot,vmIDs,_hosts[i].getNodeName()));
                         vmIDs++;
                     }
                 }
-
-
-
-            }
-
-            if(started)
-                return true;
-            else 
-                return false;
-     
-     
-    }
+        }
         
   }
     
