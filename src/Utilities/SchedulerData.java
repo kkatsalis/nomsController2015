@@ -6,6 +6,8 @@
 package Utilities;
 
 import Controller.Configuration;
+import Controller.VMRequest;
+import java.util.List;
 
 /**
  *
@@ -27,7 +29,7 @@ public class SchedulerData {
        public double[][][][] D; // D[host][j][vmtype][s]: # of removed VMs of vmtype vmtype for service s of provider j from AP host
        public double[][][][] n; // n[host][j][vmtype][s]: # of allocated VMs of vmtype vmtype for service s of provider j at AP host
        
-       final double Omega = 100;
+       public double Omega = 100;
     
         Configuration config;
 
@@ -44,7 +46,7 @@ public class SchedulerData {
                 this.A = A;
                 this.D = D;
                 this.n = n;
-              
+                this.Omega=config.getOmega();
                 
                 initializeArrays();
         }
@@ -95,8 +97,10 @@ public class SchedulerData {
 			for (int s=0;s<S;s++)
 				pen[j][s] = config.getPenalty()[j][s];
                 
+             
                 
         }
+        
         
         
         public double ksi(int s, int j, int v) //helper function for denoting capacity of a VM type for the client requests for a service s of a provider j

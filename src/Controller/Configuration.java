@@ -35,7 +35,7 @@ public class Configuration {
     String nitosServer;
     int slotDuration;
     String slotDurationMetric;
-    int statsUpdatesPerSlot;
+    int numberOfMachineStatsPerSlot;
     
     double[] phiWeight;
     HashMap[] _vmRequestRateConfig;
@@ -57,6 +57,7 @@ public class Configuration {
     
     double[][] penalty; //[i][k] provider i, service k
     
+    double omega;
     int abRequestsNumber=1000;
     int abBatchRequestsNumber=100;
     HashMap associatedAPsPerClient;
@@ -230,10 +231,11 @@ public class Configuration {
             nitosServer=String.valueOf(property.getProperty("server"));
             slotDuration=Integer.valueOf(property.getProperty("slotDuration"));
             slotDurationMetric=String.valueOf(property.getProperty("slotDurationMetric"));
-            statsUpdatesPerSlot=Integer.valueOf(property.getProperty("statsUpdatesPerSlot"));
+            numberOfMachineStatsPerSlot=Integer.valueOf(property.getProperty("numberOfMachineStatsPerSlot"));
             machineResourcesNumber=Integer.valueOf(property.getProperty("machineResourcesNumber"));
             abRequestsNumber=Integer.valueOf(property.getProperty("abRequestsNumber"));
             abBatchRequestsNumber=Integer.valueOf(property.getProperty("abBatchRequestsNumber"));
+            omega=Double.valueOf(property.getProperty("omega"));
         }
         catch (Exception e) {
             System.out.println(e.toString());
@@ -414,11 +416,11 @@ public class Configuration {
             else if(EGeneratorType.Random.toString().equals(rateType)){
                   _vmRequestRateConfig[i].put("vmRate_type",EGeneratorType.Random.toString());
                 
-                parameter="min_rate_"+i;
+                parameter="vmRate_min_rate_"+i;
                 value=Double.valueOf((String)property.getProperty(parameter));
                 _vmRequestRateConfig[i].put("min",value);
                 
-                parameter="max_rate_"+i;
+                parameter="vmRate_max_rate_"+i;
                 value=Double.valueOf((String)property.getProperty(parameter));
                 _vmRequestRateConfig[i].put("max",value);
                 
@@ -528,8 +530,8 @@ public class Configuration {
         return slotDurationMetric;
     }
 
-    public int getStatsUpdatesPerSlot() {
-        return statsUpdatesPerSlot;
+    public int getNumberOfMachineStatsPerSlot() {
+        return numberOfMachineStatsPerSlot;
     }
 
     public int getHostsNumber() {
@@ -642,6 +644,10 @@ public class Configuration {
 
     public HashMap getAssociatedAPsPerClient() {
         return associatedAPsPerClient;
+    }
+
+    public double getOmega() {
+        return omega;
     }
 
     

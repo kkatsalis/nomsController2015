@@ -79,7 +79,7 @@ public class VMRequest {
 
    
 
-    public String getService() {
+    public String getServiceType() {
         return service;
     }
 

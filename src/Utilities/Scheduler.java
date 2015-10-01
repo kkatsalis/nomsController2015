@@ -13,15 +13,20 @@ package Utilities;
 import Controller.Configuration;
 import ilog.concert.*;
 import ilog.cplex.*;
+import java.util.Hashtable;
 
 
 public class Scheduler {
 	
         Configuration config;
+        SchedulerData data;
+        Hashtable results;
         
-        public Scheduler(Configuration config){
+        public Scheduler(Configuration config,SchedulerData data){
             
             this.config=config;
+            this.data=data;
+            this.results=new Hashtable();
         }
         
 	private void buildModelByRow(IloModeler model,
@@ -167,42 +172,18 @@ public class Scheduler {
 	}
 
 
-	public void Run() {
+	public Hashtable Run() {
 
 		int S = config.getServicesNumber();
 		int P = config.getProvidersNumber();
 		int V = config.getVmTypesNumber();
 		int N = config.getHostsNumber();
 		
-                
-                double[] r = new double [P]; // requests per service provider
-		for (int j=0;j<P;j++)
-			r[j] = 100*(j+1);
-
-		
-		double[][][] A = new double[P][V][S]; // A[j][v][s]: # of new requests for VMs of type v for service s of provider j
-
-		for (int j=0;j<P;j++)
-			for (int v=0;v<V;v++)
-				for (int s=0;s<S;s++)
-					A[j][v][s] = 5;
-
-
-		double[][][][] n = new double [N][P][V][S]; // n[i][j][v][s]: # of allocated VMs of type v for service s of provider j at AP i
-		double[][][][] D = new double [N][P][V][S]; // D[i][j][v][s]: # of removed VMs of type v for service s of provider j from AP i
-
-		for (int i=0;i<N;i++)
-			for (int j=0;j<P;j++)
-				for (int v=0;v<V;v++)
-					for (int s=0;s<S;s++)
-					{
-						n[i][j][v][s] = 2;
-						D[i][j][v][s] = 1;
-					}
+                int[][][][] activationMatrix=new int[N][P][V][S];
+               
 
 		try {
-			SchedulerData data = new SchedulerData(config, r, A, D, n);
-
+			
 			// Build model
 			IloCplex     cplex = new IloCplex();
 			IloNumVar[][][][]  a   = new IloNumVar[config.getHostsNumber()][config.getProvidersNumber()][config.getVmTypesNumber()][config.getServicesNumber()];
@@ -229,11 +210,17 @@ public class Scheduler {
 				System.out.println();
 			}
 			cplex.end();
+                        
+                    
 		}
 		catch (IloException ex) {
 			System.out.println("Concert Error: " + ex);
 		}
 
+                results.put("activationMatrix",activationMatrix);
+                results.put("nMatrix",data.n);
+                
+                return results;
 	}
 
 	

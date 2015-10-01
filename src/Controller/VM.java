@@ -35,7 +35,7 @@ public class VM {
     
     public VM(Hashtable vmParameters, VMRequest request,int vmID, int slot,String nodeName) {
         this.name=(String)vmParameters.get("vmName");
-        this.service = request.getService();
+        this.service = request.getServiceType();
         this.vmType = request.getVmType();
         this.providerID = request.getProviderID();
         this.vmID=vmID;

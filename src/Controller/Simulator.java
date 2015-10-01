@@ -75,10 +75,11 @@ public class Simulator {
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
           
-           initializeNodeObjects();
+           initializeHostObjects();
            initializeSlots();
            addVMEvents();
            this._controller=new Controller(_hosts,_clients,_config,_slots); 
+           this.initializeClientObjects();
          
        }
       
@@ -169,23 +170,25 @@ public class Simulator {
 
         
 
-        private void initializeNodeObjects() {
+    private void initializeHostObjects() {
         
             for (int i = 0; i < _hosts.length; i++) {
                 _hosts[i]=new Host(i,_config,_hostNames.get(i));
             }
             
-            for (int i = 0; i < _clients.length; i++) {
-                _clients[i]=new WebClient(_config,i,_clientNames.get(i),_hosts);
-            }
-            
             
 
+    }
+    
+    private void initializeClientObjects() {
+    
+        for (int i = 0; i < _clients.length; i++) {
+                _clients[i]=new WebClient(_config,i,_clientNames.get(i),_controller);
         }
-
+    }
         
         // Slot 
-        private void initializeSlots() {
+    private void initializeSlots() {
         
             _slots=new Slot[_config.getNumberOfSlots()];
             
@@ -198,7 +201,7 @@ public class Simulator {
         }
         
         
-        private void addVMEvents() {
+    private void addVMEvents() {
          
             int runningSlot=0;
             
@@ -218,8 +221,6 @@ public class Simulator {
     //Returns the new running slot (this can be also 0)    
     private int CreateNewVMRequest(int providerID,int currentSlot)
     {
-        
-        
         int slot2AddVM=0;
         int slot2RemoveVM=0;
         
@@ -229,7 +230,7 @@ public class Simulator {
                 lifetime=1;
         
          // Slot calculation
-        int slotDistance= calculateNextSlotTime(providerID);
+        int slotDistance= calculateSlotsAway(providerID);
         
         slot2AddVM=currentSlot+slotDistance;
         slot2RemoveVM=slot2AddVM+lifetime;
@@ -261,13 +262,13 @@ public class Simulator {
     }
 
     
-    private int calculateNextSlotTime(int providerID) {
+    private int calculateSlotsAway(int providerID) {
      
     		
        int interArrivalTime=-1;
 
-       int min=0;
-       int max=0;
+       double min=0;
+       double max=0;
         Double value;
         switch (EGeneratorType.valueOf(this._rateGeneratorType[providerID])){
             case Exponential:
@@ -283,10 +284,10 @@ public class Simulator {
             
             
             case Random: 
-               min= Integer.valueOf(_config.getVmRequestRateConfig()[providerID].get("min").toString());
-               max= Integer.valueOf(_config.getVmRequestRateConfig()[providerID].get("max").toString());
+               min= Double.valueOf(_config.getVmRequestRateConfig()[providerID].get("min").toString());
+               max= Double.valueOf(_config.getVmRequestRateConfig()[providerID].get("max").toString());
                 
-               interArrivalTime = Utilities.randInt(min, max);
+               interArrivalTime = Utilities.randInt((int)min, (int)max);
                 break;
            
            
@@ -304,8 +305,8 @@ public class Simulator {
     		
         int lifetime=-1;
 
-        int min=0;
-        int max=0;
+        double min=0;
+        double max=0;
         Double value;
         
         switch (EGeneratorType.valueOf(this._lifetimeGeneratorType[providerID])){
@@ -322,10 +323,10 @@ public class Simulator {
             
             
             case Random: 
-               min= Integer.valueOf(_config.getVmLifeTimeConfig()[providerID].get("min").toString());
-               max= Integer.valueOf(_config.getVmLifeTimeConfig()[providerID].get("max").toString());
+               min= Double.valueOf(_config.getVmLifeTimeConfig()[providerID].get("min").toString());
+               max= Double.valueOf(_config.getVmLifeTimeConfig()[providerID].get("max").toString());
                 
-               lifetime = Utilities.randInt(min, max);
+               lifetime = Utilities.randInt((int)min, (int)max);
                 break;
            
            

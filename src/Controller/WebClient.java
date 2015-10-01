@@ -23,16 +23,14 @@ public class WebClient {
     ABStats abStats;
     VLCStats vlcStats;
     NetRateStats netRateStats;
+    Controller _controller;
     
-    Host[] _hosts;
-    
-    
-    public WebClient(Configuration config,int id, String clientNodeName, Host[] hosts) {
+    public WebClient(Configuration config,int id, String clientNodeName, Controller controller) {
         
         this._config=config;
         this._clientName=clientNodeName;
         this._apName=String.valueOf(config.getAssociatedAPsPerClient().get("client_"+id+"_ap"));
-        this._hosts=hosts;
+        this._controller=controller;
         
         abStats=new ABStats();
         vlcStats=new VLCStats();

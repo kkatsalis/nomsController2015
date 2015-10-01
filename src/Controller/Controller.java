@@ -12,6 +12,8 @@ import Statistics.VMStats;
 import Statistics.HostStats;
 import Statistics.NetRateStats;
 import Statistics.ProviderStats;
+import Utilities.Scheduler;
+import Utilities.SchedulerData;
 import Utilities.Utilities;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,11 +50,14 @@ public class Controller {
     
     WebUtilities _webUtilities;
     
-    Timer _controllerTimer;
+    Timer _machineStatsTimer;
     int _maxControlInstances=0; 
     int _currentInstance=0; 
-    int[][][]requestMatrix; //# of requested VMs of type v for service s of provider j 
-    int[][][][] activationMatrix; // n[i][j][v][s]: # of allocated VMs of type v for service s of provider j at AP i
+    
+    
+    
+    double[][][][] nMatrix;
+    
     int vmIDs=0;
     
     Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots) {
@@ -68,46 +73,59 @@ public class Controller {
         
         this._hostStats=new HostStats[_config.getHostsNumber()];
         this._activeVMStats=new ArrayList<>();
-        this._maxControlInstances=_config.getStatsUpdatesPerSlot();
+        this._maxControlInstances=_config.getNumberOfMachineStatsPerSlot();
        
-        requestMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()];//: # of allocated VMs of type v for service s of provider j at AP i
-        activationMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()][_config.getHostsNumber()];//: # of allocated VMs of type v for service s of provider j at AP i
+
     }
 
     void Run(int slot) throws IOException {
 
         System.out.println("------- Slot:"+slot);
 
- //       startControllerInternalTimer(slot); // for Statistics updates
+        startStatsUpdateTimer(slot); // for Statistics updates
  
         try {
 
-       // deleteVMs(slot);  
- 
-        loadRequestMatrix(slot);
-        runTempScheduler();
-       
-        // New VMs
-        List<VMRequest> list2CreateLocally=null;
-        List<VMRequest> list2Create2Cloud=null;
-        VMRequest request=null;
+            // runTempScheduler();
+            
+            double[][][] vmRequestMatrix=loadVMRequestMatrix(slot);             //requestMatrix[v][s][p]
+            double[][][][] vmDeactivationMatrix=loadVmDeactivationMatrix(slot);
+            
+            deleteVMs(slot); 
+            double[] requestPattern=Utilities.findRequestPattern(_config);
         
-        LoadVM loadObject;
-        Thread thread;
-        
-        for (int i = 0; i < _config.getHostsNumber(); i++) {
-             list2CreateLocally=CplexSolution2VMRequets(slot, _hosts[i].getHostID());
+                    
+//          SchedulerData cplexData=new SchedulerData(_config,requestPattern, vmRequestMatrix, vmDeactivationMatrix, nMatrix);
+//          Scheduler scheduler=new Scheduler(_config,cplexData);
+            
+//          Hashtable schedulerResults=scheduler.Run();
+//          int[][][][] activationMatrix =(int[][][][])schedulerResults.get("activationMatrix");
+//          nMatrix=(double[][][][])schedulerResults.get("nMatrix");
 
-             for (Iterator iterator = list2CreateLocally.iterator(); iterator.hasNext();) {
-                request = (VMRequest) iterator.next();
-                
-                loadObject=new LoadVM(slot,request,_hosts[i].getNodeName());
-                thread = new Thread(loadObject);
-                thread.start();
-                
+            int[][][][] activationMatrix =tempScheduler(vmRequestMatrix); // activationMatrix[i][j][v][s]: # of allocated VMs of v v for service s of provider j at AP i
+            
+            // Create the VMs
+            VMRequest request=null;
+            LoadVM loadObject;
+            Thread thread;
+            
+            
+            for (int i = 0; i < _config.getHostsNumber(); i++) {
+                 List<VMRequest> vm2CreatePerHost=cplexSolution2VMRequets(slot, _hosts[i].getHostID(),activationMatrix);
+
+                 System.out.println("Bring up: "+vm2CreatePerHost.size()+"VMs");
+                 
+                 for (Iterator iterator = vm2CreatePerHost.iterator(); iterator.hasNext();) {
+                    request = (VMRequest) iterator.next();
+
+                    loadObject=new LoadVM(slot,request,_hosts[i].getNodeName());
+                    thread = new Thread(loadObject);
+                    thread.start();
+                    Thread.sleep(5000);
+
+                }
+
             }
-
-        }
    
 
 //       startWebClients();
@@ -118,8 +136,8 @@ public class Controller {
         
     }
 
-    // n[i][j][v][s]: # of allocated VMs of type v for service s of provider j at AP i
-    private List<VMRequest> CplexSolution2VMRequets(int slot, int hostID){
+    // n[i][j][v][s]: # of allocated VMs of v v for service s of provider j at AP i
+    private List<VMRequest> cplexSolution2VMRequets(int slot, int hostID, int[][][][] activationMatrix){
 
         int vms2Load=-1;
                 
@@ -128,33 +146,35 @@ public class Controller {
 
         String _vmType="";
         String _serviceType="";
+        int totalVms2Load=0;
         
-        for (int pro = 0; pro < _config.getProvidersNumber(); pro++) {
+        for (int p = 0; p < _config.getProvidersNumber(); p++) {
             
-            listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[pro];
+            listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[p];
             
-            for (int type = 0; type < _config.getVmTypesNumber(); type++) {
+            for (int v = 0; v < _config.getVmTypesNumber(); v++) {
                 
-                if(type==0)
+                if(v==0)
                     _vmType=EMachineTypes.small.toString();
-                else if(type==1)
+                else if(v==1)
                     _vmType=EMachineTypes.medium.toString();
-                else if(type==2)
+                else if(v==2)
                     _vmType=EMachineTypes.large.toString();
                
-                for (int ser = 0; ser < _config.getServicesNumber(); ser++) {
+                for (int s = 0; s < _config.getServicesNumber(); s++) {
                     
-                    if(ser==0)
+                    if(s==0)
                         _serviceType="AB";
-                    else if(ser==1)
+                    else if(s==1)
                         _serviceType="VLC";
                       
-                    vms2Load=activationMatrix[type][ser][pro][hostID];
+                    vms2Load=activationMatrix[hostID][p][v][s];
+                    totalVms2Load+=vms2Load;
                     
                     for(Iterator iterator = listOfRequestedVMs.iterator(); iterator.hasNext();) {
                        VMRequest nextRequest = (VMRequest)iterator.next();
          
-                       if(nextRequest.getService().equals(_serviceType)&nextRequest.getVmType().equals(_vmType))
+                       if(nextRequest.getServiceType().equals(_serviceType)&nextRequest.getVmType().equals(_vmType))
                        {
                            if(vms2Load>0){
                                 vmList2Create.add(nextRequest);
@@ -172,10 +192,10 @@ public class Controller {
         return vmList2Create;
     }
     
-    private void deleteVMs(int slot) throws IOException {
+    private void deleteVMs(int slot) throws IOException, InterruptedException {
 
-     
-  
+       System.out.println("Delete VMs Called - slot:"+slot);
+       
        List<Integer> requestID2RemoveThisSlot=new ArrayList<>();
        
        // Step 1: Find RequestIDs to remove
@@ -198,7 +218,8 @@ public class Controller {
        
        String hostName="";
        String vmName="";
-       
+      
+       Thread thread; 
        //Step 3: Delete the VM
        for (int i = 0; i < _config.getHostsNumber(); i++) {
             hostName=_hosts[i].getNodeName();
@@ -208,8 +229,10 @@ public class Controller {
                 if(requestID2RemoveThisSlot.contains(_hosts[i].getVMs().get(j).getVmReuestId())&!_hosts[i].getVMs().get(j).isActive()){
                     vmName=_hosts[i].getVMs().get(j).getName();
                     
-                    DeleteVM deleter=new DeleteVM(hostName,vmName);
-                    deleter.start();
+                    DeleteVM deleter=new DeleteVM(vmName,hostName);
+                    thread=new Thread(deleter);
+                    thread.start();
+                    Thread.sleep(5000);
                     
             }   
            }
@@ -217,69 +240,132 @@ public class Controller {
     
     }
 
-    private void updateActiveVMStatistics(int slot, int currentInstance) throws IOException {
-           
-        System.out.println("instance: "+currentInstance);
-           
-        for (int i = 0; i < _hosts.length; i++) {
-            List<VMStats> _allVMStats=_webUtilities.retrieveVMStatsPerHost(_hosts[i].getNodeName(), slot, currentInstance);
-            
-            for (Iterator<VMStats> iterator = _allVMStats.iterator(); iterator.hasNext();) {
-                VMStats next = iterator.next();
-                
-               //Find the VM and add Stats
-                for (int j = 0; j < _hosts[i].getVMs().size(); j++) {
-                    if(_hosts[i].getVMs().get(j).getName().equals(next.getDomain_name()))
-                        _hosts[i].getVMs().get(j).getStats().add(next);
-                }
-                
-            }
-            
-        }
-           
-    }
-
-    private void loadRequestMatrix(int slot) {
+   
+    private double[][][] loadVMRequestMatrix(int slot) {
         
+        double[][][] requestMatrix=new double[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()];//: # of allocated VMs of v v for service s of provider j at AP i
         List<VMRequest> listOfRequestedVMs=null;
-        int typeID=-1;
-        int serviceID=-1;
+        int v=-1;
+        int s=-1;
         
-        for (int pro = 0; pro < _config.getProvidersNumber(); pro++) {
+        for (int p = 0; p < _config.getProvidersNumber(); p++) {
             
-            listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[pro];
+            listOfRequestedVMs=_slots[slot].getVmRequests2Activate()[p];
             
             for (VMRequest nextRequest : listOfRequestedVMs) {
                 if(EMachineTypes.small.toString().equals(nextRequest.getVmType()))
-                    typeID=0;
+                    v=0;
                 else if(EMachineTypes.medium.toString().equals(nextRequest.getVmType()))
-                    typeID=1;
+                    v=1;
                 else if(EMachineTypes.large.toString().equals(nextRequest.getVmType()))
-                    typeID=2;
+                    v=2;
                 
-                if("AB".equals(nextRequest.getService()))
-                    serviceID=0;
-                else if("VLC".equals(nextRequest.getService()))
-                    serviceID=1;
+                if("AB".equals(nextRequest.getServiceType()))
+                    s=0;
+                else if("VLC".equals(nextRequest.getServiceType()))
+                    s=1;
                 
-                requestMatrix[typeID][serviceID][pro]++;
+                requestMatrix[v][s][p]++;
             }     
             
         }
+        
+        return requestMatrix;
     }
 
-    private void runTempScheduler() {
+    
+
+    
+    
+    
+    private double[][][][] loadVmDeactivationMatrix(int slot) {
+       
+       int N=_config.getHostsNumber();
+       int P=_config.getProvidersNumber();
+       int V=_config.getVmTypesNumber();
+       int S=_config.getServicesNumber();
+       
+       List<VMRequest> vmRequests2RemoveThisSlot=Utilities.findVMequests2RemoveThisSlot(slot,_slots,_config);
+       List<VM> activeVMsThisSlot=Utilities.findActiveVMs(slot, _hosts);
+      
+       
+       double[][][][] deactivationMatrix = new double [N][P][V][S]; // D[i][j][v][s]: # of removed VMs of v v for service s of provider j from AP i 
         
-        for (int types = 0; types <_config.getVmTypesNumber(); types++) {
-            for (int ser = 0; ser < _config.getServicesNumber(); ser++) {
-                for (int pro = 0; pro < _config.getProvidersNumber(); pro++) {
-                    activationMatrix[types][ser][pro][0]= requestMatrix[types][ser][pro];
-                }
+       for (int i=0;i<N;i++)
+          for (int j=0;j<P;j++)
+            for (int v=0;v<V;v++)
+                for (int s=0;s<S;s++)
+		{
+                    deactivationMatrix[i][j][v][s]=0;
+		}
+       
+       
+        int hostID=-1;
+        int providerID=-1;
+        int vmTypeID=-1;
+        int serviceID=-1;
+        
+        for (Iterator iterator = vmRequests2RemoveThisSlot.iterator(); iterator.hasNext();) {
+            VMRequest next = (VMRequest)iterator.next();
+            
+            for (Iterator iterator1 = activeVMsThisSlot.iterator(); iterator1.hasNext();) {
+                VM nextVM = (VM)iterator1.next();
                 
+                if(nextVM.getVmReuestId()==next.getRequestID()){ // then this Vm must be deactivated
+                
+                    hostID=Utilities.findHostID(_config, nextVM.getHostname());
+                    providerID=nextVM.getProviderID();
+                    
+                    switch (next.getVmType()){
+                        case "small":
+                            vmTypeID=0;
+                        case "medium":
+                            vmTypeID=1;
+                        case "large":
+                            vmTypeID=2;  
+                    }
+            
+                    switch (next.getServiceType()){
+                        case "AB":
+                            serviceID=0;
+                        case "VLC":
+                            serviceID=1;
+                    }
+                    
+                    deactivationMatrix[hostID][providerID][vmTypeID][serviceID]++;
+                }
+                    
             }
+            
+          
+         
+            
+            
         }
-    
-    
+        
+        return deactivationMatrix;
+    }
+
+    private int[][][][] tempScheduler(double[][][] vmRequestMatrix) {
+        // activationMatrix[i][j][v][s]: # of allocated VMs of v v for service s of provider j at AP i
+         //requestMatrix[v][s][p]
+        
+        int[][][][] activationMatrix=new int[_config.getHostsNumber()][_config.getProvidersNumber()][_config.getVmTypesNumber()][_config.getServicesNumber()];
+        
+        for (int j = 0; j < _config.getProvidersNumber(); j++) {
+            for (int v = 0; v < _config.getVmTypesNumber(); v++) {
+                for (int s = 0; s < _config.getServicesNumber(); s++) {
+                    activationMatrix[0][j][v][s]=(int)vmRequestMatrix[v][s][j];
+                   
+                }
+            }
+   
+        }
+        
+        return activationMatrix;
+        
+        
+        
     }
    
     class DeleteVM implements Runnable{
@@ -318,16 +404,7 @@ public class Controller {
              deleted=true;
            }
 
-           public void start ()
-           {
-              System.out.println("Starting " +  threadName );
-              if (_thread == null)
-              {
-                 _thread = new Thread (this, threadName);
-                 _thread.start ();
-              }
-           }
-
+          
         public boolean isDeleted() {
             return deleted;
         }
@@ -411,7 +488,7 @@ public class Controller {
             while(!vmCreated){
                 
                 vmCreated=_webUtilities.checkVMListOnHost(hostName,String.valueOf(vmParameters.get("vmName")));
-                System.out.println("attempt:"+ counter);
+                System.out.println("Bring VM up attempt:"+ counter+"-requestID:"+request.getRequestID());
                 
                 try {
                     Thread.sleep(1000);
@@ -443,11 +520,11 @@ public class Controller {
         
   }
     
-    class ExecuteControllerTimer extends TimerTask {
+    class MachineStatsTimer extends TimerTask {
 
          int slot;
          
-         ExecuteControllerTimer(int slot){
+         MachineStatsTimer(int slot){
             this.slot=slot;
          }
          
@@ -458,7 +535,7 @@ public class Controller {
                 try {
                         
                     updateAllHostStatistics(slot);
-                    updateActiveVMStatistics(slot,_currentInstance);
+                 //   updateActiveVMStatistics(slot,_currentInstance);
                         
                         _currentInstance++;
                         
@@ -469,7 +546,7 @@ public class Controller {
                 }
               }
               else{
-                _controllerTimer.cancel();
+                _machineStatsTimer.cancel();
               }
               
             }
@@ -477,23 +554,27 @@ public class Controller {
         
     }
     
-    private void startControllerInternalTimer(int slot) {
+    private void startStatsUpdateTimer(int slot) {
            
-        int statsUpdateInterval=_config.getSlotDuration()/_config.getStatsUpdatesPerSlot();
+        int statsUpdateInterval=_config.getSlotDuration()/_config.getNumberOfMachineStatsPerSlot();
 
-            _controllerTimer = new Timer();
+            _machineStatsTimer = new Timer();
             _currentInstance=0;
             
             if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.milliseconds.toString()))
-               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(slot),0 ,statsUpdateInterval);
+               _machineStatsTimer.scheduleAtFixedRate(new MachineStatsTimer(slot),0 ,statsUpdateInterval);
             else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.seconds.toString()))
-               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(slot),0 ,statsUpdateInterval*1000);
+               _machineStatsTimer.scheduleAtFixedRate(new MachineStatsTimer(slot),0 ,statsUpdateInterval*1000);
             else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.minutes.toString()))
-               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(slot),0 ,60*statsUpdateInterval*1000);
+               _machineStatsTimer.scheduleAtFixedRate(new MachineStatsTimer(slot),0 ,60*statsUpdateInterval*1000);
             else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.hours.toString()))
-               _controllerTimer.scheduleAtFixedRate(new ExecuteControllerTimer(slot),0 ,3600*statsUpdateInterval*1000);
+               _machineStatsTimer.scheduleAtFixedRate(new MachineStatsTimer(slot),0 ,3600*statsUpdateInterval*1000);
     }
 
+  
+    //************************************
+    //         Statistics Update
+    //************************************
     private void updateAllHostStatistics(int slot) throws IOException, JSONException {
        
         int statsNumber=0;
@@ -504,46 +585,69 @@ public class Controller {
             
             Hashtable parameters=_webUtilities.retrieveHostStats(_hosts[i].getNodeName(), slot);
             
-            
-            _hosts[i].getHostStats().get(statsNumber-1).setSlot(Integer.valueOf(String.valueOf(parameters.get("slot"))));
-            _hosts[i].getHostStats().get(statsNumber-1).setHostname(String.valueOf(parameters.get("Hostname")));
-            _hosts[i].getHostStats().get(statsNumber-1).setTime(String.valueOf(parameters.get("Time")));
-            _hosts[i].getHostStats().get(statsNumber-1).setArch(String.valueOf(parameters.get("Arch")));
-            _hosts[i].getHostStats().get(statsNumber-1).setPhysical_CPUs(String.valueOf(parameters.get("Physical_CPUs")));
-            _hosts[i].getHostStats().get(statsNumber-1).setCount(String.valueOf(parameters.get("Count")));
-            _hosts[i].getHostStats().get(statsNumber-1).setRunning(String.valueOf(parameters.get("Running")));
-            _hosts[i].getHostStats().get(statsNumber-1).setBlocked(String.valueOf(parameters.get("Blocked")));
-            _hosts[i].getHostStats().get(statsNumber-1).setPaused(String.valueOf(parameters.get("Paused")));
-            _hosts[i].getHostStats().get(statsNumber-1).setShutdown(String.valueOf(parameters.get("Shutdown")));
-            _hosts[i].getHostStats().get(statsNumber-1).setShutoff(String.valueOf(parameters.get("Shutoff")));
-            _hosts[i].getHostStats().get(statsNumber-1).setCrashed(String.valueOf(parameters.get("Crashed")));
-            _hosts[i].getHostStats().get(statsNumber-1).setActive(String.valueOf(parameters.get("Active")));
-            _hosts[i].getHostStats().get(statsNumber-1).setInactive(String.valueOf(parameters.get("Inactive")));
-            _hosts[i].getHostStats().get(statsNumber-1).setCPU_percentage(String.valueOf(parameters.get("CPU_percentage")));
-            _hosts[i].getHostStats().get(statsNumber-1).setTotal_hardware_memory_KB(String.valueOf(parameters.get("Total_hardware_memory_KB")));
-            _hosts[i].getHostStats().get(statsNumber-1).setTotal_memory_KB(String.valueOf(parameters.get("Total_memory_KB")));
-            _hosts[i].getHostStats().get(statsNumber-1).setTotal_guest_memory_KB(String.valueOf(parameters.get("Total_guest_memory_KB")));                    
-             
-            List<NetRateStats> interfaces=(List<NetRateStats>)parameters.get("netRates");
-            
-            for (int j = 0; j < interfaces.size(); j++) {
-                _hosts[i].getHostStats().get(statsNumber-1).getNetRates().add(new NetRateStats());
-                
-                _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setInterface(interfaces.get(j).getInterface());
-                _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setTimeStamp(interfaces.get(j).getTimeStamp());
-                _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setKbps_in(interfaces.get(j).getKbps_in());
-                _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setKbps_out(interfaces.get(j).getKbps_out());
+            if(parameters!=null){
+                _hosts[i].getHostStats().get(statsNumber-1).setSlot(Integer.valueOf(String.valueOf(parameters.get("slot"))));
+                _hosts[i].getHostStats().get(statsNumber-1).setHostname(String.valueOf(parameters.get("Hostname")));
+                _hosts[i].getHostStats().get(statsNumber-1).setTime(String.valueOf(parameters.get("Time")));
+                _hosts[i].getHostStats().get(statsNumber-1).setArch(String.valueOf(parameters.get("Arch")));
+                _hosts[i].getHostStats().get(statsNumber-1).setPhysical_CPUs(String.valueOf(parameters.get("Physical_CPUs")));
+                _hosts[i].getHostStats().get(statsNumber-1).setCount(String.valueOf(parameters.get("Count")));
+                _hosts[i].getHostStats().get(statsNumber-1).setRunning(String.valueOf(parameters.get("Running")));
+                _hosts[i].getHostStats().get(statsNumber-1).setBlocked(String.valueOf(parameters.get("Blocked")));
+                _hosts[i].getHostStats().get(statsNumber-1).setPaused(String.valueOf(parameters.get("Paused")));
+                _hosts[i].getHostStats().get(statsNumber-1).setShutdown(String.valueOf(parameters.get("Shutdown")));
+                _hosts[i].getHostStats().get(statsNumber-1).setShutoff(String.valueOf(parameters.get("Shutoff")));
+                _hosts[i].getHostStats().get(statsNumber-1).setCrashed(String.valueOf(parameters.get("Crashed")));
+                _hosts[i].getHostStats().get(statsNumber-1).setActive(String.valueOf(parameters.get("Active")));
+                _hosts[i].getHostStats().get(statsNumber-1).setInactive(String.valueOf(parameters.get("Inactive")));
+                _hosts[i].getHostStats().get(statsNumber-1).setCPU_percentage(String.valueOf(parameters.get("CPU_percentage")));
+                _hosts[i].getHostStats().get(statsNumber-1).setTotal_hardware_memory_KB(String.valueOf(parameters.get("Total_hardware_memory_KB")));
+                _hosts[i].getHostStats().get(statsNumber-1).setTotal_memory_KB(String.valueOf(parameters.get("Total_memory_KB")));
+                _hosts[i].getHostStats().get(statsNumber-1).setTotal_guest_memory_KB(String.valueOf(parameters.get("Total_guest_memory_KB")));                    
+
+                List<NetRateStats> interfaces=(List<NetRateStats>)parameters.get("netRates");
+
+                for (int j = 0; j < interfaces.size(); j++) {
+                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().add(new NetRateStats());
+
+                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setInterface(interfaces.get(j).getInterface());
+                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setTimeStamp(interfaces.get(j).getTimeStamp());
+                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setKbps_in(interfaces.get(j).getKbps_in());
+                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setKbps_out(interfaces.get(j).getKbps_out());
+                }
             }
-          
+            
         }
         
         
     }
 
+    private void updateActiveVMStatistics(int slot, int currentInstance) throws IOException {
+           
+        System.out.println("instance: "+currentInstance);
+           
+        for (int i = 0; i < _hosts.length; i++) {
+            List<VMStats> _allVMStats=_webUtilities.retrieveVMStatsPerHost(_hosts[i].getNodeName(), slot, currentInstance);
+            
+            for (Iterator<VMStats> iterator = _allVMStats.iterator(); iterator.hasNext();) {
+                VMStats next = iterator.next();
+                
+               //Find the VM and add Stats
+                for (int j = 0; j < _hosts[i].getVMs().size(); j++) {
+                    if(_hosts[i].getVMs().get(j).getName().equals(next.getDomain_name()))
+                        _hosts[i].getVMs().get(j).getStats().add(next);
+                }
+                
+            }
+            
+        }
+           
+    }
+
+    
+    
     private void updateProviderStatistics() {
         
-        int[][][][] requestMatrix;
-        int[][][][] allocationMatrix;
         
     }
 }

@@ -43,6 +43,8 @@ public class WebUtilities {
     
        //http://nitlab3.inf.uth.gr:4100/vm-create/server-john/precise/small/192.168.100.10/255.255.254.0/192.168.100.1/node
         
+      
+         
         String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/vm-create/";
         boolean methodResponse=false;
         
@@ -62,16 +64,17 @@ public class WebUtilities {
         uri+=interDefaultGateway+"/";   
         uri+=hostName;
         
+
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpGet httpget = new HttpGet(uri);
         CloseableHttpResponse response = httpclient.execute(httpget);
 
         try {
-
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
+            System.out.println("CretaeVM called for:"+vmName);
+//            System.out.println(response.getProtocolVersion());
+//            System.out.println(response.getStatusLine().getStatusCode());
+//            System.out.println(response.getStatusLine().getReasonPhrase());
+            System.out.println("response Status:"+response.getStatusLine().toString());
 
             if(response.getStatusLine().toString().contains("200"))
                 methodResponse=true;
@@ -101,7 +104,7 @@ public class WebUtilities {
         CloseableHttpResponse response = httpclient.execute(httpget);
 
         try {
-
+              System.out.println("**** VM:"+vmName+" started");
 //            System.out.println(response.getProtocolVersion());
 //            System.out.println(response.getStatusLine().getStatusCode());
 //            System.out.println(response.getStatusLine().getReasonPhrase());
@@ -132,10 +135,10 @@ public class WebUtilities {
         CloseableHttpResponse response = httpclient.execute(httpget);
 
         try {
-
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            System.out.println(response.getStatusLine().getReasonPhrase());
+            System.out.println("****** VM:"+vmName+" deleted");
+//            System.out.println(response.getProtocolVersion());
+//            System.out.println(response.getStatusLine().getStatusCode());
+//            System.out.println(response.getStatusLine().getReasonPhrase());
             System.out.println(response.getStatusLine().toString());
 
         } 
