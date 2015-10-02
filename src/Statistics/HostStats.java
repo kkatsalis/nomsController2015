@@ -14,8 +14,9 @@ import java.util.List;
  */
 public class HostStats {
    
-    int  slot;
-    String Hostname;
+    String  slot;
+    String measurement;
+    String HostName;
     String Time;
     String Arch;
     String Physical_CPUs;
@@ -39,14 +40,18 @@ public class HostStats {
         netRates=new ArrayList<>();
         
     }
+
+    public String getSlot() {
+        return slot;
+    }
     
     
-    public String getHostname() {
-        return Hostname;
+    public String getHostName() {
+        return HostName;
     }
 
     public void setHostname(String Hostname) {
-        this.Hostname = Hostname;
+        this.HostName = Hostname;
     }
 
     public String getTime() {
@@ -177,7 +182,7 @@ public class HostStats {
         this.Total_guest_memory_KB = Total_guest_memory_KB;
     }
 
-    public List<NetRateStats> getNetRates() {
+    public List<NetRateStats> getInterfacesRates() {
         return netRates;
     }
 
@@ -185,8 +190,16 @@ public class HostStats {
         this.netRates = netRates;
     }
 
-    public void setSlot(int slot) {
+    public void setSlot(String slot) {
         this.slot = slot;
+    }
+
+    public String getMeasurement() {
+        return measurement;
+    }
+
+    public void setMeasurement(String measurement) {
+        this.measurement = measurement;
     }
     
     

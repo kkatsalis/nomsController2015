@@ -22,7 +22,7 @@ public class Host {
     
     List<VM> _VMs;    // A list with VMs per Host Machine;
     
-    List<HostStats> _hostStats; // A number of measurements is taken for every Host per Slot
+    HostStats _hostStats; // A number of measurements is taken for every Host per Slot
     Resources _resources;
     
     public Host(int hostId,Configuration config,String nodeName) {
@@ -33,14 +33,17 @@ public class Host {
         this._resources=new Resources(EMachineTypes.Host.toString(),config);
         
         this._VMs=new ArrayList<>();     // A list with VMs per Host Machine;
-        this._hostStats=new ArrayList<>();
+        
     }
 
+    public void createNewStatsObject(){
+        this._hostStats=new HostStats();
+    }
     public String getNodeName() {
         return _nodeName;
     }
 
-    public List<HostStats> getHostStats() {
+    public HostStats getHostStats() {
         return _hostStats;
     }
 

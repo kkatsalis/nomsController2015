@@ -11,7 +11,7 @@ package Statistics;
  */
 public class VMStats {
      
-        String hostName;
+        String HostName;
         String Domain_ID;
         String Domain_name;
         String CPU_ns;
@@ -23,8 +23,8 @@ public class VMStats {
         String Net_RXBY;
         String Net_TXBY;
         
-        int instance;
-        int slot;
+        String MeasurementCount;
+        String Slot;
         
         NetRateStats netRates;
 
@@ -116,28 +116,28 @@ public class VMStats {
         this.netRates = netRates;
     }
 
-    public int getInstance() {
-        return instance;
+    public String getMeasurementCount() {
+        return MeasurementCount;
     }
 
-    public void setInstance(int instance) {
-        this.instance = instance;
+    public void setInstance(String instance) {
+        this.MeasurementCount = instance;
     }
 
-    public int getSlot() {
-        return slot;
+    public String getSlot() {
+        return Slot;
     }
 
-    public void setSlot(int slot) {
-        this.slot = slot;
+    public void setSlot(String slot) {
+        this.Slot = slot;
     }
 
     public String getHostName() {
-        return hostName;
+        return HostName;
     }
 
     public void setHostName(String hostName) {
-        this.hostName = hostName;
+        this.HostName = hostName;
     }
         
         

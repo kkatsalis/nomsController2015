@@ -7,6 +7,7 @@ package Controller;
 
 import Enumerators.EGeneratorType;
 import Enumerators.ESlotDurationMetric;
+import Statistics.DBClass;
 import Utilities.Utilities;
 
 import java.util.ArrayList;
@@ -56,6 +57,7 @@ public class Simulator {
         Exponential[] _lifetimeExponentialGenerator;
         Pareto[] _lifetimeParetoGenerator;
 
+        DBClass _db;
         Random rand;
         Timer timer;
   
@@ -70,7 +72,7 @@ public class Simulator {
            
            this._hosts=new Host[_config.getHostNames().size()];
            this._clients=new WebClient[_config.getClientNames().size()];
-           
+           this._db=new DBClass();
            
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
@@ -78,7 +80,7 @@ public class Simulator {
            initializeHostObjects();
            initializeSlots();
            addVMEvents();
-           this._controller=new Controller(_hosts,_clients,_config,_slots); 
+           this._controller=new Controller(_hosts,_clients,_config,_slots,_db); 
            this.initializeClientObjects();
          
        }
@@ -379,6 +381,7 @@ public class Simulator {
                     }else{
                         experimentStop=System.currentTimeMillis();
                         timer.cancel();
+                       _db.getOmlclient().close();
                         System.exit(0);
                     }
                 } 

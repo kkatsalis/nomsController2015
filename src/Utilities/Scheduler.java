@@ -19,14 +19,30 @@ import java.util.Hashtable;
 public class Scheduler {
 	
         Configuration config;
-        SchedulerData data;
-        Hashtable results;
+      
+        double[][][][] n;
         
-        public Scheduler(Configuration config,SchedulerData data){
+        public Scheduler(Configuration config){
             
             this.config=config;
-            this.data=data;
-            this.results=new Hashtable();
+            
+          
+            int N=config.getHostsNumber();
+            int P=config.getProvidersNumber();
+            int V=config.getVmTypesNumber();
+            int S=config.getServicesNumber();
+            
+            this.n = new double [N][P][V][S];
+            
+            for (int i=0;i<N;i++)
+			for (int j=0;j<P;j++)
+				for (int v=0;v<V;v++)
+					for (int s=0;s<S;s++)
+					{
+						n[i][j][v][s] = 0;
+						
+					}
+            
         }
         
 	private void buildModelByRow(IloModeler model,
@@ -172,7 +188,7 @@ public class Scheduler {
 	}
 
 
-	public Hashtable Run() {
+	public int[][][][] Run(SchedulerData data) {
 
 		int S = config.getServicesNumber();
 		int P = config.getProvidersNumber();
@@ -217,10 +233,8 @@ public class Scheduler {
 			System.out.println("Concert Error: " + ex);
 		}
 
-                results.put("activationMatrix",activationMatrix);
-                results.put("nMatrix",data.n);
-                
-                return results;
+                               
+                return activationMatrix;
 	}
 
 	

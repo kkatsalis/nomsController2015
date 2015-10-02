@@ -7,6 +7,7 @@ package Controller;
 
 import Enumerators.EMachineTypes;
 import Enumerators.ESlotDurationMetric;
+import Statistics.DBClass;
 import Utilities.WebUtilities;
 import Statistics.VMStats;
 import Statistics.HostStats;
@@ -28,6 +29,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jsc.distributions.Exponential;
 import jsc.distributions.Pareto;
+import omlBasePackage.OMLMPFieldDef;
+import omlBasePackage.OMLTypes;
 import org.json.JSONException;
 
 /**
@@ -49,31 +52,30 @@ public class Controller {
     List<VMStats> _activeVMStats;
     
     WebUtilities _webUtilities;
+    DBClass _db;
     
     Timer _machineStatsTimer;
-    int _maxControlInstances=0; 
+    int maxUpdateInstance=0; 
     int _currentInstance=0; 
-    
-    
-    
-    double[][][][] nMatrix;
-    
     int vmIDs=0;
     
-    Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots) {
+    SchedulerData cplexData;
+    Scheduler scheduler;
+    
+    Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots, DBClass db) {
         
         this._config=config;
         this._slots=slots;
         this._hosts=hosts;
         this._clients=clients;
-        
+        this._db=db;
         this._providerStats=new ProviderStats[config.getProvidersNumber()];
         this._webUtilities=new WebUtilities(config);
        
         
         this._hostStats=new HostStats[_config.getHostsNumber()];
         this._activeVMStats=new ArrayList<>();
-        this._maxControlInstances=_config.getNumberOfMachineStatsPerSlot();
+        this.maxUpdateInstance=_config.getNumberOfMachineStatsPerSlot();
        
 
     }
@@ -86,46 +88,45 @@ public class Controller {
  
         try {
 
-            // runTempScheduler();
             
-            double[][][] vmRequestMatrix=loadVMRequestMatrix(slot);             //requestMatrix[v][s][p]
-            double[][][][] vmDeactivationMatrix=loadVmDeactivationMatrix(slot);
-            
-            deleteVMs(slot); 
-            double[] requestPattern=Utilities.findRequestPattern(_config);
+//            double[][][] vmRequestMatrix=loadVMRequestMatrix(slot);             //requestMatrix[v][s][p]
+//            double[][][][] vmDeactivationMatrix=loadVmDeactivationMatrix(slot);
+//            
+//            deleteVMs(slot); 
+//            double[] requestPattern=Utilities.findRequestPattern(_config);
+//        
+//                    
+//          cplexData=new SchedulerData(_config,requestPattern, vmRequestMatrix, vmDeactivationMatrix);
+//          scheduler=new Scheduler(_config);
+//            
+//          int[][][][] activationMatrix=scheduler.Run(cplexData);
+          
         
-                    
-//          SchedulerData cplexData=new SchedulerData(_config,requestPattern, vmRequestMatrix, vmDeactivationMatrix, nMatrix);
-//          Scheduler scheduler=new Scheduler(_config,cplexData);
-            
-//          Hashtable schedulerResults=scheduler.Run();
-//          int[][][][] activationMatrix =(int[][][][])schedulerResults.get("activationMatrix");
-//          nMatrix=(double[][][][])schedulerResults.get("nMatrix");
 
-            int[][][][] activationMatrix =tempScheduler(vmRequestMatrix); // activationMatrix[i][j][v][s]: # of allocated VMs of v v for service s of provider j at AP i
+//            int[][][][] activationMatrix =tempScheduler(vmRequestMatrix); // activationMatrix[i][j][v][s]: # of allocated VMs of v v for service s of provider j at AP i
             
             // Create the VMs
-            VMRequest request=null;
-            LoadVM loadObject;
-            Thread thread;
-            
-            
-            for (int i = 0; i < _config.getHostsNumber(); i++) {
-                 List<VMRequest> vm2CreatePerHost=cplexSolution2VMRequets(slot, _hosts[i].getHostID(),activationMatrix);
-
-                 System.out.println("Bring up: "+vm2CreatePerHost.size()+"VMs");
-                 
-                 for (Iterator iterator = vm2CreatePerHost.iterator(); iterator.hasNext();) {
-                    request = (VMRequest) iterator.next();
-
-                    loadObject=new LoadVM(slot,request,_hosts[i].getNodeName());
-                    thread = new Thread(loadObject);
-                    thread.start();
-                    Thread.sleep(5000);
-
-                }
-
-            }
+//            VMRequest request=null;
+//            LoadVM loadObject;
+//            Thread thread;
+//            
+//            
+//            for (int i = 0; i < _config.getHostsNumber(); i++) {
+//                 List<VMRequest> vm2CreatePerHost=cplexSolution2VMRequets(slot, _hosts[i].getHostID(),activationMatrix);
+//
+//                 System.out.println("Bring up: "+vm2CreatePerHost.size()+"VMs");
+//                 
+//                 for (Iterator iterator = vm2CreatePerHost.iterator(); iterator.hasNext();) {
+//                    request = (VMRequest) iterator.next();
+//
+//                    loadObject=new LoadVM(slot,request,_hosts[i].getNodeName());
+//                    thread = new Thread(loadObject);
+//                    thread.start();
+//                    Thread.sleep(5000);
+//
+//                }
+//
+//            }
    
 
 //       startWebClients();
@@ -530,11 +531,13 @@ public class Controller {
          
          public void run() {
              
-            if(_currentInstance<_maxControlInstances){
+            if(_currentInstance<maxUpdateInstance){
                     
                 try {
                         
-                    updateAllHostStatistics(slot);
+                    updateAllHostStatistics(slot,_currentInstance);
+                    updateAllHostStatisticsDB(slot,_currentInstance);
+                    updateAllHostStatisticsInterfacesDB(slot,_currentInstance);
                  //   updateActiveVMStatistics(slot,_currentInstance);
                         
                         _currentInstance++;
@@ -575,45 +578,46 @@ public class Controller {
     //************************************
     //         Statistics Update
     //************************************
-    private void updateAllHostStatistics(int slot) throws IOException, JSONException {
+    private void updateAllHostStatistics(int slot, int measurement) throws IOException, JSONException {
        
         int statsNumber=0;
         
         for (int i = 0; i < _hosts.length; i++) {
-            _hosts[i].getHostStats().add(new HostStats());
-            statsNumber=_hosts[i].getHostStats().size();
+            _hosts[i].createNewStatsObject();
+           
             
-            Hashtable parameters=_webUtilities.retrieveHostStats(_hosts[i].getNodeName(), slot);
+            Hashtable parameters=_webUtilities.retrieveHostStats(_hosts[i].getNodeName(), slot,measurement);
             
             if(parameters!=null){
-                _hosts[i].getHostStats().get(statsNumber-1).setSlot(Integer.valueOf(String.valueOf(parameters.get("slot"))));
-                _hosts[i].getHostStats().get(statsNumber-1).setHostname(String.valueOf(parameters.get("Hostname")));
-                _hosts[i].getHostStats().get(statsNumber-1).setTime(String.valueOf(parameters.get("Time")));
-                _hosts[i].getHostStats().get(statsNumber-1).setArch(String.valueOf(parameters.get("Arch")));
-                _hosts[i].getHostStats().get(statsNumber-1).setPhysical_CPUs(String.valueOf(parameters.get("Physical_CPUs")));
-                _hosts[i].getHostStats().get(statsNumber-1).setCount(String.valueOf(parameters.get("Count")));
-                _hosts[i].getHostStats().get(statsNumber-1).setRunning(String.valueOf(parameters.get("Running")));
-                _hosts[i].getHostStats().get(statsNumber-1).setBlocked(String.valueOf(parameters.get("Blocked")));
-                _hosts[i].getHostStats().get(statsNumber-1).setPaused(String.valueOf(parameters.get("Paused")));
-                _hosts[i].getHostStats().get(statsNumber-1).setShutdown(String.valueOf(parameters.get("Shutdown")));
-                _hosts[i].getHostStats().get(statsNumber-1).setShutoff(String.valueOf(parameters.get("Shutoff")));
-                _hosts[i].getHostStats().get(statsNumber-1).setCrashed(String.valueOf(parameters.get("Crashed")));
-                _hosts[i].getHostStats().get(statsNumber-1).setActive(String.valueOf(parameters.get("Active")));
-                _hosts[i].getHostStats().get(statsNumber-1).setInactive(String.valueOf(parameters.get("Inactive")));
-                _hosts[i].getHostStats().get(statsNumber-1).setCPU_percentage(String.valueOf(parameters.get("CPU_percentage")));
-                _hosts[i].getHostStats().get(statsNumber-1).setTotal_hardware_memory_KB(String.valueOf(parameters.get("Total_hardware_memory_KB")));
-                _hosts[i].getHostStats().get(statsNumber-1).setTotal_memory_KB(String.valueOf(parameters.get("Total_memory_KB")));
-                _hosts[i].getHostStats().get(statsNumber-1).setTotal_guest_memory_KB(String.valueOf(parameters.get("Total_guest_memory_KB")));                    
+                _hosts[i].getHostStats().setSlot(String.valueOf(parameters.get("slot")));
+                _hosts[i].getHostStats().setMeasurement(String.valueOf(parameters.get("measurement")));
+                _hosts[i].getHostStats().setHostname(String.valueOf(parameters.get("Hostname")));
+                _hosts[i].getHostStats().setTime(String.valueOf(parameters.get("Time")));
+                _hosts[i].getHostStats().setArch(String.valueOf(parameters.get("Arch")));
+                _hosts[i].getHostStats().setPhysical_CPUs(String.valueOf(parameters.get("Physical_CPUs")));
+                _hosts[i].getHostStats().setCount(String.valueOf(parameters.get("Count")));
+                _hosts[i].getHostStats().setRunning(String.valueOf(parameters.get("Running")));
+                _hosts[i].getHostStats().setBlocked(String.valueOf(parameters.get("Blocked")));
+                _hosts[i].getHostStats().setPaused(String.valueOf(parameters.get("Paused")));
+                _hosts[i].getHostStats().setShutdown(String.valueOf(parameters.get("Shutdown")));
+                _hosts[i].getHostStats().setShutoff(String.valueOf(parameters.get("Shutoff")));
+                _hosts[i].getHostStats().setCrashed(String.valueOf(parameters.get("Crashed")));
+                _hosts[i].getHostStats().setActive(String.valueOf(parameters.get("Active")));
+                _hosts[i].getHostStats().setInactive(String.valueOf(parameters.get("Inactive")));
+                _hosts[i].getHostStats().setCPU_percentage(String.valueOf(parameters.get("CPU_percentage")));
+                _hosts[i].getHostStats().setTotal_hardware_memory_KB(String.valueOf(parameters.get("Total_hardware_memory_KB")));
+                _hosts[i].getHostStats().setTotal_memory_KB(String.valueOf(parameters.get("Total_memory_KB")));
+                _hosts[i].getHostStats().setTotal_guest_memory_KB(String.valueOf(parameters.get("Total_guest_memory_KB")));                    
 
                 List<NetRateStats> interfaces=(List<NetRateStats>)parameters.get("netRates");
 
                 for (int j = 0; j < interfaces.size(); j++) {
-                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().add(new NetRateStats());
+                    _hosts[i].getHostStats().getInterfacesRates().add(new NetRateStats());
 
-                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setInterface(interfaces.get(j).getInterface());
-                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setTimeStamp(interfaces.get(j).getTimeStamp());
-                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setKbps_in(interfaces.get(j).getKbps_in());
-                    _hosts[i].getHostStats().get(statsNumber-1).getNetRates().get(0).setKbps_out(interfaces.get(j).getKbps_out());
+                    _hosts[i].getHostStats().getInterfacesRates().get(j).setInterface(interfaces.get(j).getInterface());
+                    _hosts[i].getHostStats().getInterfacesRates().get(j).setTimeStamp(interfaces.get(j).getTimeStamp());
+                    _hosts[i].getHostStats().getInterfacesRates().get(j).setKbps_in(interfaces.get(j).getKbps_in());
+                    _hosts[i].getHostStats().getInterfacesRates().get(j).setKbps_out(interfaces.get(j).getKbps_out());
                 }
             }
             
@@ -621,7 +625,62 @@ public class Controller {
         
         
     }
+    private void updateAllHostStatisticsDB(int slot,int _currentInstance){
+        
+        for (int i = 0; i < _hosts.length; i++) {
+              
+            String[] data = { 
+                String.valueOf(slot),
+                String.valueOf(_currentInstance),
+                _hosts[i].getHostStats().getTime(),
+                _hosts[i].getHostStats().getHostName(),
+                _hosts[i].getHostStats().getArch(),
+                _hosts[i].getHostStats().getPhysical_CPUs(),
+                _hosts[i].getHostStats().getCount(),
+                _hosts[i].getHostStats().getRunning(),
+                _hosts[i].getHostStats().getBlocked(),
+                _hosts[i].getHostStats().getPaused(),
+                _hosts[i].getHostStats().getShutdown(),
+                _hosts[i].getHostStats().getShutoff(),
+                _hosts[i].getHostStats().getCrashed(),
+                _hosts[i].getHostStats().getActive(),
+                _hosts[i].getHostStats().getInactive(),
+                _hosts[i].getHostStats().getCPU_percentage(),
+                _hosts[i].getHostStats().getTotal_hardware_memory_KB(),
+                _hosts[i].getHostStats().getTotal_memory_KB(),
+                _hosts[i].getHostStats().getTotal_guest_memory_KB()
+              
+             };
+            
+            _db.getMp_hostStats().inject(data);
+    
+        }
+    
+    
+    
+    }
+    private void updateAllHostStatisticsInterfacesDB(int slot, int measurement){
+    
+        for (int i = 0; i < _hosts.length; i++) {
+            
+            List<NetRateStats> interfaces=_hosts[i].getHostStats().getInterfacesRates();
 
+                for (int j = 0; j < interfaces.size(); j++) {
+                    
+                    String[] data = { 
+                    String.valueOf(slot),
+                    String.valueOf(_hosts[i].getNodeName()),    
+                    _hosts[i].getHostStats().getInterfacesRates().get(j).getInterface(),
+                    _hosts[i].getHostStats().getInterfacesRates().get(j).getTimeStamp(),
+                    String.valueOf(_hosts[i].getHostStats().getInterfacesRates().get(j).getKbps_in()),
+                    String.valueOf(_hosts[i].getHostStats().getInterfacesRates().get(j).getKbps_out())
+                    };
+                }
+     
+    
+        }
+    
+    }
     private void updateActiveVMStatistics(int slot, int currentInstance) throws IOException {
            
         System.out.println("instance: "+currentInstance);

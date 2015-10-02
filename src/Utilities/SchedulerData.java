@@ -33,7 +33,7 @@ public class SchedulerData {
     
         Configuration config;
 
-        public SchedulerData(Configuration config,double[] r, double[][][] A, double[][][][] D, double[][][][] n)
+        public SchedulerData(Configuration config,double[] r, double[][][] A, double[][][][] D)
         {
                 this.config=config;
                 this.S = config.getServicesNumber(); 
@@ -42,7 +42,6 @@ public class SchedulerData {
                 this.N = config.getHostsNumber();
                 this.R = config.getMachineResourcesNumber();
                 this.r = r;
-                this.pen = pen;
                 this.A = A;
                 this.D = D;
                 this.n = n;
