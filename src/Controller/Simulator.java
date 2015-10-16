@@ -7,8 +7,11 @@ package Controller;
 
 import Enumerators.EGeneratorType;
 import Enumerators.ESlotDurationMetric;
+import Statistics.ABStats;
 import Statistics.DBClass;
+import Statistics.DBUtilities;
 import Utilities.Utilities;
+import Utilities.WebUtilities;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,116 +23,127 @@ import jsc.distributions.Pareto;
 
 import java.awt.Toolkit;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONException;
 /**
  *
  * @author kostas
  */
 public class Simulator {
-    /**
-     * @param args the command line arguments
-     */
-       int slot=0;
-       
-       Configuration _config;
-       
-       List<String> _hostNames;
-       List<String> _clientNames;
-       List<String> _serviceNames;
-       List<String> _vmTypesNames;
-       
-       Host[] _hosts;
-       WebClient[] _clients;
-       Slot[] _slots;
-       
-        Controller _controller;
-        
-       // How to create requests per Service Domain, one per provider
-        String[] _rateGeneratorType; 
-        Exponential[] _rateExponentialGenerator;
-        Pareto[] _rateParetoGenerator;
-        
-        // Lifetime of VM one per provider
-        String[] _lifetimeGeneratorType; 
-        Exponential[] _lifetimeExponentialGenerator;
-        Pareto[] _lifetimeParetoGenerator;
+    
+   int slot=0;
 
-        DBClass _db;
-        Random rand;
-        Timer timer;
-  
-        long experimentStart;
-        long experimentStop;
-        
+    Configuration _config;
+
+    List<String> _hostNames;
+    List<String> _clientNames;
+    List<String> _serviceNames;
+    List<String> _vmTypesNames;
+
+    Host[] _hosts;
+    WebClient[] _webClients;
+    Slot[] _slots;
+
+    Controller _controller;
+
+   // How to create requests per Service Domain, one per provider
+    String[] _rateGeneratorType; 
+    Exponential[] _rateExponentialGenerator;
+    Pareto[] _rateParetoGenerator;
+
+    // Lifetime of VM one per provider
+    String[] _lifetimeGeneratorType; 
+    Exponential[] _lifetimeExponentialGenerator;
+    Pareto[] _lifetimeParetoGenerator;
+
+    DBClass _db;
+    DBUtilities _dbUtilities;
+    Random rand;
+
+    long experimentStart;
+    long experimentStop;
+
+    Timer controllerTimer;
+    Timer[] clientsTimer;
+
+    WebUtilities _webUtility;
+    DBUtilities _dbUtility;
+    
         public Simulator(){
            
            this._config=new Configuration();
            this._hostNames=_config.getHostNames();
            this._clientNames=_config.getClientNames();
+           this.controllerTimer = new Timer();
+           this.clientsTimer=new Timer[_clientNames.size()];
            
-           this._hosts=new Host[_config.getHostNames().size()];
-           this._clients=new WebClient[_config.getClientNames().size()];
+          
+           this._webUtility=new WebUtilities(_config); 
            this._db=new DBClass();
+           this._dbUtilities=new DBUtilities(_hosts, _webUtility);
+
+           
+           initializeNodesAndSlots(); //creates: Hosts, Clients, Slots
+           this._dbUtility=new DBUtilities(_hosts, _webUtility);
            
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
-          
-           initializeHostObjects();
-           initializeSlots();
-           addVMEvents();
-           this._controller=new Controller(_hosts,_clients,_config,_slots,_db); 
-           this.initializeClientObjects();
-         
+           
+           addInitialVmEvents();
+           
+           this._controller=new Controller(_hosts,_webClients,_config,_slots,_db,_dbUtilities); 
+           
        }
       
 
        
 
-       
-        private void initializeRateGenerators()
-        {
-             _rateGeneratorType=new String[_config.getProvidersNumber()];
+
+    private void initializeRateGenerators()
+    {
+         _rateGeneratorType=new String[_config.getProvidersNumber()];
+
+        for (int i = 0; i < _config.getProvidersNumber(); i++) {
+            _rateGeneratorType[i]=_config.getVmRequestRateConfig()[i].get("vmRate_type").toString();
+        }
+
+        // 2. Build the array of generators
+        double lamda;
+        double location;
+        double shape;
+
+        this._rateExponentialGenerator=new Exponential[_config.getProvidersNumber()];
+        this._rateParetoGenerator=new Pareto[_config.getProvidersNumber()];
 
             for (int i = 0; i < _config.getProvidersNumber(); i++) {
-                _rateGeneratorType[i]=_config.getVmRequestRateConfig()[i].get("vmRate_type").toString();
-            }
 
-            // 2. Build the array of generators
-            double lamda;
-            double location;
-            double shape;
+                if(_rateGeneratorType[i].equals(EGeneratorType.Exponential.toString())){
 
-            this._rateExponentialGenerator=new Exponential[_config.getProvidersNumber()];
-            this._rateParetoGenerator=new Pareto[_config.getProvidersNumber()];
+                    lamda=((Double)_config.getVmRequestRateConfig()[i].get("mean"));
+                    this._rateExponentialGenerator[i]=new Exponential(lamda);
+                    this._rateParetoGenerator[i]=null;
+                }
+                else if(_rateGeneratorType[i].equals(EGeneratorType.Pareto.toString())){
 
-                for (int i = 0; i < _config.getProvidersNumber(); i++) {
+                  _rateExponentialGenerator[i]=null;  
+                  location=((Double)_config.getVmRequestRateConfig()[i].get("location"));
+                  shape =((Double)_config.getVmRequestRateConfig()[i].get("shape"));
 
-                    if(_rateGeneratorType[i].equals(EGeneratorType.Exponential.toString())){
+                  this._rateParetoGenerator[i]=new Pareto(location, shape);
+                  double mean=_rateParetoGenerator[i].mean();
+                  System.out.print(mean);
+                }
 
-                        lamda=((Double)_config.getVmRequestRateConfig()[i].get("mean"));
-                        this._rateExponentialGenerator[i]=new Exponential(lamda);
-                        this._rateParetoGenerator[i]=null;
-                    }
-                    else if(_rateGeneratorType[i].equals(EGeneratorType.Pareto.toString())){
+            }      
 
-                      _rateExponentialGenerator[i]=null;  
-                      location=((Double)_config.getVmRequestRateConfig()[i].get("location"));
-                      shape =((Double)_config.getVmRequestRateConfig()[i].get("shape"));
+    }
 
-                      this._rateParetoGenerator[i]=new Pareto(location, shape);
-                      double mean=_rateParetoGenerator[i].mean();
-                      System.out.print(mean);
-                    }
-
-                }      
-
-        }
-        
-        private void initializeVmLifetimeGenerators()
-        {
+    private void initializeVmLifetimeGenerators()
+    {
              _lifetimeGeneratorType=new String[_config.getProvidersNumber()];
 
             for (int i = 0; i < _config.getProvidersNumber(); i++) {
@@ -172,38 +186,43 @@ public class Simulator {
 
         
 
-    private void initializeHostObjects() {
+   
+    
+    private void initializeNodesAndSlots() {
+    
+        // Initialize Hosts
+        this._hosts=new Host[_config.getHostNames().size()];
         
-            for (int i = 0; i < _hosts.length; i++) {
-                _hosts[i]=new Host(i,_config,_hostNames.get(i));
-            }
+        for (int i = 0; i < _hosts.length; i++) {
+            _hosts[i]=new Host(i,_config,_hostNames.get(i));
+        }
+        
+        // Initialize Clients
+        this._webClients=new WebClient[_config.getClientNames().size()];
+         
+        for (int i = 0; i < _webClients.length; i++) {
+            _webClients[i]=new WebClient(_config,i,0,_clientNames.get(i),_controller);
             
-            
+            clientsTimer[i]=new Timer();
+            clientsTimer[i].schedule(new ExecuteClientRequest(i,0),100); //Start the Client Requests (initial delay 100)
+
+        }
+        
+           // Initialize Slots
+        _slots=new Slot[_config.getNumberOfSlots()];
+
+        for (int i = 0; i < _config.getNumberOfSlots(); i++) {
+            _slots[i]=new Slot(i,_config);
+
+        }
+        
 
     }
-    
-    private void initializeClientObjects() {
-    
-        for (int i = 0; i < _clients.length; i++) {
-                _clients[i]=new WebClient(_config,i,_clientNames.get(i),_controller);
-        }
-    }
         
-        // Slot 
-    private void initializeSlots() {
-        
-            _slots=new Slot[_config.getNumberOfSlots()];
-            
-            for (int i = 0; i < _config.getNumberOfSlots(); i++) {
-                _slots[i]=new Slot(i,_config);
-                
-            }
+  
         
         
-        }
-        
-        
-    private void addVMEvents() {
+    private void addInitialVmEvents() {
          
             int runningSlot=0;
             
@@ -344,30 +363,131 @@ public class Simulator {
         
     }
         
-        
+     
      public final void StartExperiment() {
 
             int duration=_config.getSlotDuration();
 
             experimentStart=System.currentTimeMillis();
             System.out.println("start: " +experimentStart);
-
-            timer = new Timer();
             
             if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.milliseconds.toString()))
-               timer.scheduleAtFixedRate(new ExecuteSlot(),0 ,duration);
+               controllerTimer.scheduleAtFixedRate(new RunSlot(),0 ,duration);
             else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.seconds.toString()))
-               timer.scheduleAtFixedRate(new ExecuteSlot(),0 ,duration*1000);
+               controllerTimer.scheduleAtFixedRate(new RunSlot(),0 ,duration*1000);
             else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.minutes.toString()))
-               timer.scheduleAtFixedRate(new ExecuteSlot(),0 ,60*duration*1000);
+               controllerTimer.scheduleAtFixedRate(new RunSlot(),0 ,60*duration*1000);
             else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.hours.toString()))
-               timer.scheduleAtFixedRate(new ExecuteSlot(),0 ,3600*duration*1000);
+               controllerTimer.scheduleAtFixedRate(new RunSlot(),0 ,3600*duration*1000);
             
         }
 
+            
+    
+    class ExecuteClientRequest extends TimerTask {
+
+        int clientID;
+        int measurement=0;
         
+        public ExecuteClientRequest(int clientID,int measurement) {
+            this.measurement=measurement;
+            this.clientID=clientID;
+        }
+
         
-    class ExecuteSlot extends TimerTask {
+         @Override
+         public void run() {
+            
+            try {
+                int duration=_config.getSlotDuration();
+                
+                if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.seconds.toString()))
+                    duration=1000*duration;
+                else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.minutes.toString()))
+                    duration=60*duration*1000;
+                else if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.hours.toString()))
+                    duration=3600*duration*1000;
+                
+                int delay = (5 + new Random().nextInt(duration));
+                
+                clientsTimer[clientID].schedule(new ExecuteClientRequest(clientID,measurement+1), delay);
+                
+                System.out.println("Client: "+clientID+" slot: "+slot+" delay "+delay);
+                
+                String clientName=_clientNames.get(clientID);
+                String service = Utilities.chooseService2Call(_config,clientID); //Choose Service to Run
+                int providerID=_webClients[clientID].getProviderID(); //Find the provider he belongs
+                String vmIP=chooseVMforService(service, providerID,clientName);   //Find the hosting VM of the Service
+                
+                ABStats abStats=_webUtility.retrieveStatsABPerClient(clientName,vmIP); //getFromClient
+                _dbUtilities.updateABStatistics2DB(slot,measurement,abStats); //send2DB
+                
+            } catch (IOException ex) {
+                Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (JSONException ex) {
+                Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
+            }
+                      
+                      
+            }
+
+       
+    }
+        
+    
+    
+    //Algorithm: Choose a VM in the hosting Node else choose at Random
+        
+    private String chooseVMforService(String service, int providerID, String webClient){
+        
+        String vmIP="";
+        String hostApName="";
+        Random random=new Random();
+                
+        
+        //Step 1: Find the hosting node
+        for (int i = 0; i <webClient.length(); i++) {
+            if(_webClients[i].getClientName().equals(webClient))
+                hostApName=_webClients[i].getApName();
+        }
+ 
+        //Step 2: Find all the VMs that can be used
+        
+        List<VM> potentialVMs=new ArrayList<>();
+     
+           for (Host _host : _hosts) {
+               for (Iterator iterator = _host.getVMs().iterator(); iterator.hasNext();) {
+                   VM nextVM = (VM)iterator.next();
+                   
+                   if(nextVM.isActive()&nextVM.getProviderID()==providerID&nextVM.getService().equals(service)){
+                       potentialVMs.add(nextVM);
+                   }
+               }
+           }
+           
+           if(0==potentialVMs.size()){
+               if("AB".equals(service)){
+                  return _config.getCloudVM_AB_IPs().get(random.nextInt(_config.getCloudVM_AB_number()-1));
+                }
+               else {
+                 return _config.getCloudVM_VLC_IPs().get(random.nextInt(_config.getCloudVM_VLC_number()-1));
+               }
+                        
+            }
+                        
+        //Step 3: Find the local VM
+           for (Iterator iterator = potentialVMs.iterator(); iterator.hasNext();) {
+               VM nextVM = (VM)iterator.next();
+              
+               if(hostApName.equals(nextVM.getHostname()))
+                    vmIP=nextVM.getIp();
+        }
+        
+        return vmIP;
+    }
+    
+        
+    class RunSlot extends TimerTask {
 
             public void run() {
              
@@ -380,7 +500,7 @@ public class Simulator {
                     
                     }else{
                         experimentStop=System.currentTimeMillis();
-                        timer.cancel();
+                        controllerTimer.cancel();
                        _db.getOmlclient().close();
                         System.exit(0);
                     }
@@ -390,5 +510,5 @@ public class Simulator {
                 }
               
             }
-  }
+    }
 }

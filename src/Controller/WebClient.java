@@ -18,18 +18,20 @@ public class WebClient {
     
     Configuration _config;
     String _clientName;
-    String _apName;
-    
+    String _apHostName;
+    int _providerID;
     ABStats abStats;
     VLCStats vlcStats;
     NetRateStats netRateStats;
     Controller _controller;
     
-    public WebClient(Configuration config,int id, String clientNodeName, Controller controller) {
+    public WebClient(Configuration config,int clientID,int providerID, String clientName, Controller controller) {
         
         this._config=config;
-        this._clientName=clientNodeName;
-        this._apName=String.valueOf(config.getAssociatedAPsPerClient().get("client_"+id+"_ap"));
+        
+        this._clientName=clientName;
+        this._providerID=providerID;
+        this._apHostName=String.valueOf(config.getAssociatedAPsPerClient().get("client_"+clientID+"_ap"));
         this._controller=controller;
         
         abStats=new ABStats();
@@ -37,8 +39,19 @@ public class WebClient {
         netRateStats=new NetRateStats();
     }
 
-   
+    public int getProviderID() {
+        return _providerID;
+    }
 
+    public String getClientName() {
+        return _clientName;
+    }
+
+    public String getApName() {
+        return _apHostName;
+    }
+
+   
     public ABStats getAbStats() {
         return abStats;
     }

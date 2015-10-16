@@ -13,6 +13,7 @@ public class ABStats {
 
 int slot;
 int measurement;
+String clientName;
 
 String Server_Software;
 String Server_Hostname;
@@ -64,6 +65,15 @@ String Percentage_95;
 String Percentage_98;
 String Percentage_99;
 String Percentage_100;
+
+    public String getClientName() {
+        return clientName;
+    }
+
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
+    }
+
 
     public int getSlot() {
         return slot;

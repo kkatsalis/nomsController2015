@@ -31,6 +31,8 @@ public class Configuration {
     int servicesNumber;
     int vmTypesNumber;
     int machineResourcesNumber;
+    int cloudVM_AB_number;
+    int cloudVM_VLC_number;
     
     String nitosServer;
     int slotDuration;
@@ -41,6 +43,10 @@ public class Configuration {
     HashMap[] _vmRequestRateConfig;
     HashMap[] _vmLifeTimeConfig;
  
+    List<String> cloudVM_AB_IPs=new ArrayList<>();
+    List<String> cloudVM_VLC_IPs=new ArrayList<>();
+    
+    
     List<String> clientNames=new ArrayList<>();
     List<String> hostNames=new ArrayList<>();
     List<String> servicesNames=new ArrayList<>();
@@ -50,7 +56,8 @@ public class Configuration {
     double memory_host;
     double storage_host;
     double bandwidth_host;
-    double[] cpu_VM; //One per VM Type
+   
+    double[] cpu_VM; //One per VM Type 0:small, 1:medium, 2:large
     double[] memory_VM; //One per VM Type
     double[] storage_VM; //One per VM Type
     double[] bandwidth_VM; //One per VM Type
@@ -74,13 +81,13 @@ public class Configuration {
         this.addClientNodes();
         this.addServices();
         this.addVmTypes();
-        
         this.loadProperties();
         this.loadRequestRatesParameters();
         this.loadVmLifetimeParameters();
         this.loadFairnessWeights();
         this.loadResources();
         this.loadPenalties();
+        this.loadExternalCloudParameters();
         
      
     }
@@ -236,6 +243,9 @@ public class Configuration {
             abRequestsNumber=Integer.valueOf(property.getProperty("abRequestsNumber"));
             abBatchRequestsNumber=Integer.valueOf(property.getProperty("abBatchRequestsNumber"));
             omega=Double.valueOf(property.getProperty("omega"));
+            cloudVM_AB_number=Integer.valueOf(property.getProperty("cloudVM_AB_number"));
+            cloudVM_VLC_number=Integer.valueOf(property.getProperty("cloudVM_VLC_number"));
+            
         }
         catch (Exception e) {
             System.out.println(e.toString());
@@ -268,7 +278,7 @@ public class Configuration {
     
     }
     
-      private void loadResources() {
+    private void loadResources() {
         
         cpu_VM=new double [vmTypesNumber];
         memory_VM=new double [vmTypesNumber];
@@ -498,6 +508,47 @@ public class Configuration {
         
     }
 
+     private void loadExternalCloudParameters() {
+
+      
+        Properties property = new Properties();
+	InputStream input = null;    
+     	String filename = "simulation.properties";
+    
+        input = Configuration.class.getClassLoader().getResourceAsStream(filename);
+                
+        try {
+            // load a properties file
+            property.load(input);
+        } catch (IOException ex) {
+            Logger.getLogger(Configuration.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        String parameter="";
+        String ip="";
+       
+        
+        // AB Service
+        for (int i = 0; i < _config.cloudVM_AB_number; i++) {
+            parameter="cloudVM_AB_"+i;
+            ip=String.valueOf((String)property.getProperty(parameter));
+            cloudVM_AB_IPs.add(ip);
+            
+         }
+        
+         // VLC Service
+        for (int i = 0; i < _config.cloudVM_AB_number; i++) {
+            parameter="cloud_VLC_"+i;
+            ip=String.valueOf((String)property.getProperty(parameter));
+            cloudVM_VLC_IPs.add(ip);
+            
+         }
+        
+        
+    }
+    
+    
+    
     public int getProvidersNumber() {
         return providersNumber;
     }
@@ -648,6 +699,22 @@ public class Configuration {
 
     public double getOmega() {
         return omega;
+    }
+
+    public int getCloudVM_AB_number() {
+        return cloudVM_AB_number;
+    }
+
+    public int getCloudVM_VLC_number() {
+        return cloudVM_VLC_number;
+    }
+
+    public List<String> getCloudVM_AB_IPs() {
+        return cloudVM_AB_IPs;
+    }
+
+    public List<String> getCloudVM_VLC_IPs() {
+        return cloudVM_VLC_IPs;
     }
 
     

@@ -21,7 +21,7 @@ public class VMRequest {
     String service;
     int lifetime;     //in Slots
    
-    Resources resources;
+  
     Configuration config;
     
     public VMRequest(Configuration config, int providerID, int lifetime) {
@@ -56,9 +56,6 @@ public class VMRequest {
     public void setVmType(String vmType) {
         this.vmType = vmType;
         
-        resources=new Resources(vmType,config);
-        
-        
     }
 
     public int getSlotStart() {
@@ -91,9 +88,7 @@ public class VMRequest {
         return lifetime;
     }
 
-    public Resources getResources() {
-        return resources;
-    }
+    
     
     
    

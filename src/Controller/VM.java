@@ -30,24 +30,34 @@ public class VM {
     int slotDeactivated;
     int vmReuestId;
     boolean active;
-    List<VMStats> stats;
+    VMStats stats;
+    Resources resources;
+    Configuration config;
     
     
-    public VM(Hashtable vmParameters, VMRequest request,int vmID, int slot,String nodeName) {
+    public VM(Hashtable vmParameters, VMRequest request,int vmID, int slot,String hostName,Configuration config) {
+        
+        this.config=config;
+        
+        this.hostname=hostName;
+        
+        this.vmID=vmID;
         this.name=(String)vmParameters.get("vmName");
+        this.ip=(String)vmParameters.get("interIP");
+        this.netmask=(String)vmParameters.get("interMask");
+        
         this.service = request.getServiceType();
         this.vmType = request.getVmType();
         this.providerID = request.getProviderID();
-        this.vmID=vmID;
-        this.ip=(String)vmParameters.get("interIP");
-        this.netmask=(String)vmParameters.get("interMask");
-        this.slotActivated=slot;
         this.vmReuestId=request.getRequestID();
-        this.hostname=nodeName;
         
-        active=true;
+        this.slotActivated=slot;
         
-        stats=new ArrayList<>();
+        this.resources=new Resources();
+        this.active=true;
+        this.stats=new VMStats();
+        
+        loadResourcesSpecification();
     }
 
     public String getName() {
@@ -74,8 +84,12 @@ public class VM {
         return providerID;
     }
 
-    public List<VMStats> getStats() {
+    public VMStats getStats() {
         return stats;
+    }
+
+    public void setStats(VMStats stats) {
+        this.stats = stats;
     }
 
     public int getSlotActivated() {
@@ -108,6 +122,22 @@ public class VM {
 
     public boolean isActive() {
         return active;
+    }
+
+    private void loadResourcesSpecification() {
+    
+        switch(vmType){
+            
+            case "small": 
+                resources.setCpu(config.getCpu_VM()[0]);
+                resources.setMemory(config.getMemory_VM()[0]);
+            case "medium": 
+                resources.setStorage(config.getStorage_VM()[1]);    
+            case "large": 
+                resources.setBandwidth(config.getBandwidth_VM()[0]);
+        
+        
+        }
     }
 
     

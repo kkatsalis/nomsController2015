@@ -163,4 +163,12 @@ public class Utilities {
                 
             return r;
     }
+     
+      public static String chooseService2Call(Configuration _config,int clientID) {
+          
+            Random rand=new Random();
+            String service=_config.getServicesNames().get(rand.nextInt(_config.getServicesNumber()-1));
+            
+            return service;
+        }
 }

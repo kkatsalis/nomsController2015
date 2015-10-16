@@ -30,12 +30,16 @@ public class Host {
         this.hostID=hostId;
         this._config=config;
         this._nodeName=nodeName;
-        this._resources=new Resources(EMachineTypes.Host.toString(),config);
-        
+    
         this._VMs=new ArrayList<>();     // A list with VMs per Host Machine;
+        this._resources=new Resources();
         
+        loadResourcesSpecification();
     }
 
+    
+    
+    
     public void createNewStatsObject(){
         this._hostStats=new HostStats();
     }
@@ -53,6 +57,15 @@ public class Host {
 
     public int getHostID() {
         return hostID;
+    }
+
+    private void loadResourcesSpecification() {
+        
+        _resources.setCpu(_config.getCpu_host());
+        _resources.setMemory(_config.getMemory_host());
+        _resources.setStorage(_config.getStorage_host());
+        _resources.setBandwidth(_config.getBandwidth_host());
+        
     }
 
     

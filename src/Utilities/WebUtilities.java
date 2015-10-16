@@ -149,7 +149,31 @@ public class WebUtilities {
         return methodResponse;
     }
     
-    public List<VMStats> retrieveVMStatsPerHost(String hostName, int slot,int instance) throws IOException{
+     public boolean checkVMListOnHost(String hostName, String vmName) throws IOException{
+    
+         
+            String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/virsh_list_all/";
+            uri+=hostName;
+            
+            CloseableHttpClient httpclient = HttpClients.createDefault();
+            HttpGet httpget = new HttpGet(uri);
+            CloseableHttpResponse response = httpclient.execute(httpget);
+            
+            String json="";
+            String output;
+            BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
+            
+            while ((output = br.readLine()) != null) {
+                if(output.contains(vmName))
+                return true;
+            }
+            
+            return false;
+        
+    }
+    
+   
+    public List<VMStats> retrieveStatsVMsPerHost(String hostName, int slot,int instance) throws IOException{
     
         List<VMStats> vmStatsList=new ArrayList<>();
      
@@ -204,7 +228,7 @@ public class WebUtilities {
         return vmStatsList;
     }
     
-    public Hashtable retrieveHostStats(String hostName, int slot,int instance) throws IOException, JSONException{
+    public Hashtable retrieveStatsHost(String hostName, int slot,int instance) throws IOException, JSONException{
     
         List<NetRateStats> netRates=new ArrayList<>();
         Hashtable parameters=new Hashtable();
@@ -286,7 +310,7 @@ public class WebUtilities {
      
     }
     
-    public ABStats retrieveABStatsPerClient(String clientName,String vmIP) throws IOException, JSONException{
+    public ABStats retrieveStatsABPerClient(String clientName,String vmIP) throws IOException, JSONException{
     
         ABStats abStats=new ABStats();
         //http://nitlab3.inf.uth.gr:4100/ab/1000/10/node080/?url=<vm_ip>/
@@ -320,7 +344,7 @@ public class WebUtilities {
              
             JSONObject body=new JSONObject(json);
              
-            
+            abStats.setClientName(clientName);
             abStats.setServer_Software(body.getString("Server Software"));
             abStats.setServer_Hostname( body.getString("Server Hostname"));
             abStats.setServer_Port(body.getString("Server Port"));
@@ -407,29 +431,6 @@ public class WebUtilities {
     
     
 
-    public boolean checkVMListOnHost(String hostName, String vmName) throws IOException{
-    
-         
-            String uri="http://"+_config.getNitosServer()+".inf.uth.gr:4100/virsh_list_all/";
-            uri+=hostName;
-            
-            CloseableHttpClient httpclient = HttpClients.createDefault();
-            HttpGet httpget = new HttpGet(uri);
-            CloseableHttpResponse response = httpclient.execute(httpget);
-            
-            String json="";
-            String output;
-            BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
-            
-            while ((output = br.readLine()) != null) {
-                if(output.contains(vmName))
-                return true;
-            }
-            
-            return false;
-        
-    }
-    
    
     
     

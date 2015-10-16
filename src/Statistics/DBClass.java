@@ -21,9 +21,9 @@ public class DBClass {
     OMLBase omlclient; 
     
     ArrayList<OMLMPFieldDef> hostStatsSchema;
-    ArrayList<OMLMPFieldDef> vmStatshostSchema;
-    ArrayList<OMLMPFieldDef> interfaceVMStatsSchema;
-    ArrayList<OMLMPFieldDef> interfaceHostStatsSchema;
+    ArrayList<OMLMPFieldDef> vmStatsSchema;
+    ArrayList<OMLMPFieldDef> vmInterfacesStatsSchema;
+    ArrayList<OMLMPFieldDef> hostInterfacesStatsSchema;
     ArrayList<OMLMPFieldDef> webClientABStatsSchema;
     
     OmlMP mp_hostStats;
@@ -44,9 +44,9 @@ public class DBClass {
         initiliazeWebClientABTableSchema();
         
         mp_hostStats = new OmlMP(hostStatsSchema);
-        mp_vmStats = new OmlMP(vmStatshostSchema);
-        mp_vmIinterfaceStats = new OmlMP(interfaceVMStatsSchema);
-        mp_hostIinterfaceStats = new OmlMP(interfaceHostStatsSchema);
+        mp_hostIinterfaceStats = new OmlMP(hostInterfacesStatsSchema);
+        mp_vmStats = new OmlMP(vmStatsSchema);
+        mp_vmIinterfaceStats = new OmlMP(vmInterfacesStatsSchema);
         mp_webClientABStats = new OmlMP(webClientABStatsSchema);
          
         omlclient.addmp("hostStatsTable", mp_hostStats); 
@@ -87,51 +87,50 @@ public class DBClass {
     
     private void initiliazeHostInterfaceDBTableSchema(){
     
-        interfaceHostStatsSchema=new ArrayList<>();
+        hostInterfacesStatsSchema=new ArrayList<>();
         
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE)); // Measurement per slot
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("HostName",OMLTypes.OML_STRING_VALUE));
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("Interface",OMLTypes.OML_STRING_VALUE));
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("TimeStamp",OMLTypes.OML_LONG_VALUE));
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
-        interfaceHostStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE)); // Measurement per slot
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("HostName",OMLTypes.OML_STRING_VALUE));
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("Interface",OMLTypes.OML_STRING_VALUE));
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("TimeStamp",OMLTypes.OML_LONG_VALUE));
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
+        hostInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
     
     }
      
     private void initiliazeVMInterfaceDBTableSchema(){
     
-        interfaceVMStatsSchema=new ArrayList<>();
+        vmInterfacesStatsSchema=new ArrayList<>();
         
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE)); // Measurement per slot
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("VMName",OMLTypes.OML_STRING_VALUE));
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("Interface",OMLTypes.OML_STRING_VALUE));
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("TimeStamp",OMLTypes.OML_LONG_VALUE));
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
-        interfaceVMStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE)); // Measurement per slot
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("VMName",OMLTypes.OML_STRING_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Interface",OMLTypes.OML_STRING_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("TimeStamp",OMLTypes.OML_LONG_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
     
     }
     
        
     private void initiliazeVMBTableSchema(){
        
-        vmStatshostSchema = new ArrayList<>();
+        vmStatsSchema = new ArrayList<>();
         
-        vmStatshostSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("HostName",OMLTypes.OML_STRING_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Domain_ID",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Domain_name",OMLTypes.OML_STRING_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("CPU_ns",OMLTypes.OML_DOUBLE_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("CPU_percentage",OMLTypes.OML_DOUBLE_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Mem_bytes",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Mem_percentage",OMLTypes.OML_DOUBLE_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Block_RDRQ",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Block_WRRQ",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Net_RXBY",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("Net_TXBY",OMLTypes.OML_INT32_VALUE));
-        vmStatshostSchema.add(new OMLMPFieldDef("InterfaceStatsID",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("HostName",OMLTypes.OML_STRING_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Domain_ID",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Domain_name",OMLTypes.OML_STRING_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("CPU_ns",OMLTypes.OML_DOUBLE_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("CPU_percentage",OMLTypes.OML_DOUBLE_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Mem_bytes",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Mem_percentage",OMLTypes.OML_DOUBLE_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Block_RDRQ",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Block_WRRQ",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Net_RXBY",OMLTypes.OML_INT32_VALUE));
+        vmStatsSchema.add(new OMLMPFieldDef("Net_TXBY",OMLTypes.OML_INT32_VALUE));
         
     }
      
