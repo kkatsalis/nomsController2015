@@ -15,13 +15,10 @@ import Utilities.WebUtilities;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
-import java.util.Queue;
 import java.util.Random;
 import jsc.distributions.Exponential;
 import jsc.distributions.Pareto;
 
-import java.awt.Toolkit;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Timer;
@@ -69,7 +66,6 @@ public class Simulator {
     Timer[] clientsTimer;
 
     WebUtilities _webUtility;
-    DBUtilities _dbUtility;
     
         public Simulator(){
            
@@ -84,10 +80,7 @@ public class Simulator {
            this._db=new DBClass();
            this._dbUtilities=new DBUtilities(_hosts, _webUtility);
 
-           
            initializeNodesAndSlots(); //creates: Hosts, Clients, Slots
-           this._dbUtility=new DBUtilities(_hosts, _webUtility);
-           
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
            
@@ -202,11 +195,13 @@ public class Simulator {
             _webClients[i]=new WebClient(_config,i,0,_clientNames.get(i),_controller);
             
             clientsTimer[i]=new Timer();
-            clientsTimer[i].schedule(new ExecuteClientRequest(i,0),100); //Start the Client Requests (initial delay 100)
+            
+            if(false)
+                clientsTimer[i].schedule(new ExecuteClientRequest(i,0),100); //Start the Client Requests (initial delay 100)
 
         }
         
-           // Initialize Slots
+        // Initialize Slots
         _slots=new Slot[_config.getNumberOfSlots()];
 
         for (int i = 0; i < _config.getNumberOfSlots(); i++) {
@@ -420,9 +415,7 @@ public class Simulator {
                 ABStats abStats=_webUtility.retrieveStatsABPerClient(clientName,vmIP); //getFromClient
                 _dbUtilities.updateABStatistics2DB(slot,measurement,abStats); //send2DB
                 
-            } catch (IOException ex) {
-                Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
-            } catch (JSONException ex) {
+            } catch (IOException | JSONException ex) {
                 Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
             }
                       
