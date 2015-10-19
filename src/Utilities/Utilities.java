@@ -160,7 +160,7 @@ public class Utilities {
         int[] r = new int [_config.getProvidersNumber()]; // requests per service provider
 	
         for (int j=0;j<_config.getProvidersNumber();j++)
-            r[j] = 100*(j+1);
+            r[j] = 1000000000*(j+1);
                 
             return r;
     }

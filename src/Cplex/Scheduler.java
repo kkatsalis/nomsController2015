@@ -63,7 +63,7 @@ public class Scheduler {
                             IloNumExpr expr = model.numExpr();
                             expr = model.sum(expr, a[i][j][v][s]);
                             expr = model.sum(expr, data.n[i][j][v][s]);
-                            expr = model.sum(expr, -data.D[i][j][v][s]);
+                            expr = model.diff(expr, data.D[i][j][v][s]);
                             expr = model.prod(expr, data.m[v][k]);
                             vsum = model.sum(vsum, expr);
                         }
@@ -107,7 +107,8 @@ public class Scheduler {
         }
         
         // build fr fairness expression
-        double n_sum = 0;
+        double epsilon = 0.000000001;
+        double n_sum = epsilon;
         
         for(int i=0;i<data.N;i++)
             for(int j=0;j<data.P;j++)
@@ -121,6 +122,8 @@ public class Scheduler {
         for (int k=0;k<data.P;k++)
         {
             IloNumExpr isum = model.numExpr();
+            isum = model.sum(isum,epsilon);
+            
             for(int i=0;i<data.N;i++)
             {
                 IloNumExpr vsum = model.numExpr();
@@ -163,7 +166,7 @@ public class Scheduler {
         
         
         //start of debugging
-        //fr_expr = model.numExpr();
+        fr_expr = model.numExpr();
         //y_sum = model.numExpr();
         //end of debugging
         
@@ -184,7 +187,7 @@ public class Scheduler {
             IloNumVar[][][][]  a   = new IloNumVar[data.N][data.P][data.V][data.S];
             
             
-            IloNumVarType varType = IloNumVarType.Float;
+            IloNumVarType varType = IloNumVarType.Int;
             
             
             
@@ -206,7 +209,7 @@ public class Scheduler {
                         for (int v=0;v < data.V; v++)
                             for (int s=0;s < data.S; s++)
                             {
-                                System.out.println(" a[" + i + "],["+j+"]["+v+"]["+s+"] = " + Math.round(cplex.getValue(a[i][j][v][s])));
+                                System.out.println(" a[" + i + "],["+j+"]["+v+"]["+s+"] = " + cplex.getValue(a[i][j][v][s]));
                                 activationMatrix[i][j][v][s] = (int)Math.round(cplex.getValue(a[i][j][v][s]));
                             }
                 }

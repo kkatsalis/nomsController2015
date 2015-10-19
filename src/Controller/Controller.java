@@ -81,7 +81,8 @@ public class Controller {
         
         System.out.println("Controller Runs - Slot:"+slot);
         
-        //   startStatsUpdateTimer(slot); // for Statistics updates
+        if(false)
+            startStatsUpdateTimer(slot); // for Statistics updates
         
         try {
             
@@ -240,7 +241,7 @@ public class Controller {
     
     private int[][][] loadVMRequestMatrix(int slot) {
         
-        int[][][] requestMatrix=new int[_config.getVmTypesNumber()][_config.getServicesNumber()][_config.getProvidersNumber()];//: # of allocated VMs of v v for service s of provider j at AP i
+        int[][][] requestMatrix=new int[_config.getProvidersNumber()][_config.getVmTypesNumber()][_config.getServicesNumber()];//: # of allocated VMs of v v for service s of provider j at AP i
         List<VMRequest> listOfRequestedVMs=null;
         int v=-1;
         int s=-1;
@@ -262,7 +263,7 @@ public class Controller {
                 else if("VLC".equals(nextRequest.getServiceType()))
                     s=1;
                 
-                requestMatrix[v][s][p]++;
+                requestMatrix[p][v][s]++;
             }
             
         }
