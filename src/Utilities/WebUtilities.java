@@ -67,9 +67,8 @@ public class WebUtilities {
 
         CloseableHttpClient httpclient = HttpClients.createDefault();
         HttpGet httpget = new HttpGet(uri);
-        CloseableHttpResponse response = httpclient.execute(httpget);
-
-        try {
+        
+        try (CloseableHttpResponse response = httpclient.execute(httpget)) {
             System.out.println("CretaeVM called for:"+vmName);
 //            System.out.println(response.getProtocolVersion());
 //            System.out.println(response.getStatusLine().getStatusCode());
@@ -78,9 +77,6 @@ public class WebUtilities {
 
             if(response.getStatusLine().toString().contains("200"))
                 methodResponse=true;
-        } 
-        finally {
-            response.close();
         }
 
        
@@ -164,7 +160,7 @@ public class WebUtilities {
             BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
             
             while ((output = br.readLine()) != null) {
-                if(output.contains(vmName)&output.contains("shut"))
+                if(output.contains(vmName)&output.contains("shut off"))
                 return true;
             }
             

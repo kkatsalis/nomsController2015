@@ -154,9 +154,10 @@ public class Utilities {
      }
      
      
-     public static double[] findRequestPattern(Configuration _config) {
+     public static int[] findRequestPattern(Configuration _config) {
 
-        double[] r = new double [_config.getProvidersNumber()]; // requests per service provider
+        //Moving Average 
+        int[] r = new int [_config.getProvidersNumber()]; // requests per service provider
 	
         for (int j=0;j<_config.getProvidersNumber();j++)
             r[j] = 100*(j+1);
