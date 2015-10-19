@@ -164,7 +164,7 @@ public class WebUtilities {
             BufferedReader br = new BufferedReader(new InputStreamReader((response.getEntity().getContent())));
             
             while ((output = br.readLine()) != null) {
-                if(output.contains(vmName))
+                if(output.contains(vmName)&output.contains("shut"))
                 return true;
             }
             

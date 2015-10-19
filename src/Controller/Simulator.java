@@ -41,9 +41,7 @@ public class Simulator {
 
     List<String> _hostNames;
     List<String> _clientNames;
-    List<String> _serviceNames;
-    List<String> _vmTypesNames;
-
+    
     Host[] _hosts;
     WebClient[] _webClients;
     Slot[] _slots;
@@ -446,7 +444,7 @@ public class Simulator {
                 
         
         //Step 1: Find the hosting node
-        for (int i = 0; i <webClient.length(); i++) {
+        for (int i = 0; i <_webClients.length; i++) {
             if(_webClients[i].getClientName().equals(webClient))
                 hostApName=_webClients[i].getApName();
         }
