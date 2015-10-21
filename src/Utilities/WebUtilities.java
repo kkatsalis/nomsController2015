@@ -69,11 +69,8 @@ public class WebUtilities {
         HttpGet httpget = new HttpGet(uri);
         
         try (CloseableHttpResponse response = httpclient.execute(httpget)) {
-            System.out.println("CretaeVM called for:"+vmName);
-//            System.out.println(response.getProtocolVersion());
-//            System.out.println(response.getStatusLine().getStatusCode());
-//            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println("response Status:"+response.getStatusLine().toString());
+            System.out.println("CreateVM called for:"+vmName);
+            System.out.println("Response Status:"+response.getStatusLine().toString());
 
             if(response.getStatusLine().toString().contains("200"))
                 methodResponse=true;
@@ -101,11 +98,6 @@ public class WebUtilities {
 
         try {
               System.out.println("**** VM:"+vmName+" started");
-//            System.out.println(response.getProtocolVersion());
-//            System.out.println(response.getStatusLine().getStatusCode());
-//            System.out.println(response.getStatusLine().getReasonPhrase());
-//            System.out.println(response.getStatusLine().toString());
-//            
             if(response.getStatusLine().toString().contains("200"))
                 return true;
 
@@ -132,9 +124,6 @@ public class WebUtilities {
 
         try {
             System.out.println("****** VM:"+vmName+" deleted");
-//            System.out.println(response.getProtocolVersion());
-//            System.out.println(response.getStatusLine().getStatusCode());
-//            System.out.println(response.getStatusLine().getReasonPhrase());
             System.out.println(response.getStatusLine().toString());
 
         } 

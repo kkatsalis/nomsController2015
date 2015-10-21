@@ -218,6 +218,8 @@ public class Simulator {
     private void addInitialVmEvents() {
          
             int runningSlot=0;
+            //add first VM in slot 0
+            CreateNewVMRequest(0,runningSlot,true);
             
             for (int i = 0; i < _config.getProvidersNumber(); i++) {
                 
@@ -225,7 +227,7 @@ public class Simulator {
                 
                 while(runningSlot<_config.getNumberOfSlots()){
                     
-                    runningSlot=CreateNewVMRequest(i,runningSlot);
+                    runningSlot=CreateNewVMRequest(i,runningSlot,false);
 
                 }
             }
@@ -233,7 +235,7 @@ public class Simulator {
         }
     
     //Returns the new running slot (this can be also 0)    
-    private int CreateNewVMRequest(int providerID,int currentSlot)
+    private int CreateNewVMRequest(int providerID,int currentSlot,boolean firstSlot)
     {
         int slot2AddVM=0;
         int slot2RemoveVM=0;
@@ -244,7 +246,12 @@ public class Simulator {
                 lifetime=1;
         
          // Slot calculation
-        int slotDistance= calculateSlotsAway(providerID);
+        int slotDistance;
+        
+        if(firstSlot)
+           slotDistance=0;
+        else 
+           slotDistance= calculateSlotsAway(providerID);
         
         slot2AddVM=currentSlot+slotDistance;
         slot2RemoveVM=slot2AddVM+lifetime;
