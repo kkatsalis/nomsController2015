@@ -25,9 +25,9 @@ public class DBUtilities {
     Host[] _hosts;
     WebUtilities _webUtilities;
 
-    public DBUtilities(Host[] _hosts, WebUtilities _webUtilities) {
+    public DBUtilities(Host[] _hosts, WebUtilities _webUtilities,DBClass db) {
         
-        this._db = new DBClass();
+        this._db = db;
         this._hosts = _hosts;
         this._webUtilities = _webUtilities;
     }

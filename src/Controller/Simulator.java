@@ -63,7 +63,7 @@ public class Simulator {
     long experimentStop;
 
     Timer controllerTimer;
-    Timer[] clientsTimer;
+    Timer[] _clientsTimer;
 
     WebUtilities _webUtility;
     
@@ -73,21 +73,28 @@ public class Simulator {
            this._hostNames=_config.getHostNames();
            this._clientNames=_config.getClientNames();
            this.controllerTimer = new Timer();
-           this.clientsTimer=new Timer[_clientNames.size()];
+           this._clientsTimer=new Timer[_clientNames.size()];
            
           
            this._webUtility=new WebUtilities(_config); 
            this._db=new DBClass();
-           this._dbUtilities=new DBUtilities(_hosts, _webUtility);
+           this._dbUtilities=new DBUtilities(_hosts, _webUtility,_db);
 
+           System.out.println("********** System Initialization Phase ****************");
+           
            initializeNodesAndSlots(); //creates: Hosts, Clients, Slots
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
            
            addInitialVmEvents();
            
-           this._controller=new Controller(_hosts,_webClients,_config,_slots,_db,_dbUtilities); 
+           this._controller=new Controller(_hosts,_webClients,_config,_slots,_dbUtilities); 
            
+           System.out.println("********** End of System Initialization Phase **************");
+           System.out.println();
+           
+           if (false)
+              this.startClientsRequests();
        }
       
 
@@ -172,11 +179,6 @@ public class Simulator {
 
         }
        
-
-
-
-        
-
    
     
     private void initializeNodesAndSlots() {
@@ -188,18 +190,19 @@ public class Simulator {
             _hosts[i]=new Host(i,_config,_hostNames.get(i));
         }
         
+        System.out.println("Simulator Initialization: Host Objects - OK");
+        
         // Initialize Clients
         this._webClients=new WebClient[_config.getClientNames().size()];
          
         for (int i = 0; i < _webClients.length; i++) {
             _webClients[i]=new WebClient(_config,i,0,_clientNames.get(i),_controller);
             
-            clientsTimer[i]=new Timer();
-            
-            if(false)
-                clientsTimer[i].schedule(new ExecuteClientRequest(i,0),100); //Start the Client Requests (initial delay 100)
-
+            _clientsTimer[i]=new Timer();
+           
         }
+        
+        System.out.println("Simulator Initialization: Client Objects - OK");
         
         // Initialize Slots
         _slots=new Slot[_config.getNumberOfSlots()];
@@ -209,15 +212,27 @@ public class Simulator {
 
         }
         
+          System.out.println("Simulator Initialization: Slot Objects - OK");
 
     }
-        
-  
-        
+    
+    
+    private void startClientsRequests(){
+    
+     System.out.println("********** Clients Requests Loader ****************");
+     for (int i = 0; i < _webClients.length; i++) {
+                _clientsTimer[i].schedule(new ExecuteClientRequest(i,0),500); //Start the Client Requests (initial delay 100)
+                
+     }
+     
+     System.out.println("****** All Clients Request Generators Loaded ******");
+     System.out.println();
+    }
         
     private void addInitialVmEvents() {
          
             int runningSlot=0;
+            int vmRequests=1;
             //add first VM in slot 0
             CreateNewVMRequest(0,runningSlot,true);
             
@@ -228,9 +243,12 @@ public class Simulator {
                 while(runningSlot<_config.getNumberOfSlots()){
                     
                     runningSlot=CreateNewVMRequest(i,runningSlot,false);
+                    vmRequests++;
 
                 }
             }
+            
+            System.out.println("Simulator Initialization:"+vmRequests+" VM Rquests Added for all Experiment");
             
         }
     
@@ -369,7 +387,8 @@ public class Simulator {
             int duration=_config.getSlotDuration();
 
             experimentStart=System.currentTimeMillis();
-            System.out.println("start: " +experimentStart);
+            
+            System.out.println("Simulator started! Time instant: " +experimentStart);
             
             if(_config.getSlotDurationMetric().equals(ESlotDurationMetric.milliseconds.toString()))
                controllerTimer.scheduleAtFixedRate(new RunSlot(),0 ,duration);
@@ -410,7 +429,7 @@ public class Simulator {
                 
                 int delay = (5 + new Random().nextInt(duration));
                 
-                clientsTimer[clientID].schedule(new ExecuteClientRequest(clientID,measurement+1), delay);
+                _clientsTimer[clientID].schedule(new ExecuteClientRequest(clientID,measurement+1), delay);
                 
                 System.out.println("Client: "+clientID+" slot: "+slot+" delay "+delay);
                 

@@ -154,15 +154,19 @@ public class Utilities {
      }
      
      
-     public static int[] findRequestPattern(Configuration _config) {
+     public static int[][] findRequestPattern(Configuration _config) {
 
         //Moving Average 
-        int[] r = new int [_config.getProvidersNumber()]; // requests per service provider
+        int[][] r = new int [_config.getProvidersNumber()][_config.getServicesNumber()]; // requests per service provider
 	
-        for (int j=0;j<_config.getProvidersNumber();j++)
-            r[j] = 1000000000*(j+1);
+       for (int j=0;j<_config.getProvidersNumber();j++)
+			for (int s = 0; s < _config.getServicesNumber(); s++) {
+				r[j][s] = 100*(j+1)/(s+1);
+			}
                 
+        System.out.println("Method Call: Find Request Pattern Called");
             return r;
+            
     }
      
       public static String chooseService2Call(Configuration _config,int clientID) {

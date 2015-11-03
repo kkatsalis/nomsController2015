@@ -35,7 +35,9 @@ public class DBClass {
     //(String oml_app_name, String oml_exp_id, String oml_name, String oml_server)            
     public DBClass(){
     
-        omlclient = new OMLBase("katsalis", "katsalis-exp", "katsalis_testapp", "tcp:nilab.inf.uth.gr:3003");
+        System.out.println("********** DB Initialization Phase ****************");
+        
+        omlclient = new OMLBase("katsalis", "katsalis_exp", "katsalis_testapp", "tcp:nitlab.inf.uth.gr:3003");
         
         initiliazeHostDBTableSchema();
         initiliazeHostInterfaceDBTableSchema();
@@ -56,7 +58,9 @@ public class DBClass {
         omlclient.addmp("webClientABStatsTable",mp_webClientABStats);
 
         omlclient.start();
-
+        
+         System.out.println("********** End of DB Initialization Phase ****************");
+         System.out.println();   
         
     }
 
@@ -83,6 +87,7 @@ public class DBClass {
         hostStatsSchema.add(new OMLMPFieldDef("Total_memory_KB",OMLTypes.OML_INT32_VALUE));
         hostStatsSchema.add(new OMLMPFieldDef("Total_guest_memory_KB",OMLTypes.OML_INT32_VALUE));
        
+        System.out.println("DB message (1 of 5): Host Stats Schema Created");
     }
     
     private void initiliazeHostInterfaceDBTableSchema(){
@@ -97,22 +102,8 @@ public class DBClass {
         hostInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
         hostInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
     
+        System.out.println("DB message (2 of 5): Host Interfaces Stats Schema Created");
     }
-     
-    private void initiliazeVMInterfaceDBTableSchema(){
-    
-        vmInterfacesStatsSchema=new ArrayList<>();
-        
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE)); // Measurement per slot
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("VMName",OMLTypes.OML_STRING_VALUE));
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Interface",OMLTypes.OML_STRING_VALUE));
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("TimeStamp",OMLTypes.OML_LONG_VALUE));
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
-        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
-    
-    }
-    
        
     private void initiliazeVMBTableSchema(){
        
@@ -132,8 +123,24 @@ public class DBClass {
         vmStatsSchema.add(new OMLMPFieldDef("Net_RXBY",OMLTypes.OML_INT32_VALUE));
         vmStatsSchema.add(new OMLMPFieldDef("Net_TXBY",OMLTypes.OML_INT32_VALUE));
         
+         System.out.println("DB message (3 of 5): VM Stats Schema Created");
     }
      
+    private void initiliazeVMInterfaceDBTableSchema(){
+    
+        vmInterfacesStatsSchema=new ArrayList<>();
+        
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Slot",OMLTypes.OML_INT32_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Measurement",OMLTypes.OML_INT32_VALUE)); // Measurement per slot
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("VMName",OMLTypes.OML_STRING_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Interface",OMLTypes.OML_STRING_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("TimeStamp",OMLTypes.OML_LONG_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_in",OMLTypes.OML_DOUBLE_VALUE));
+        vmInterfacesStatsSchema.add(new OMLMPFieldDef("Kbps_out",OMLTypes.OML_DOUBLE_VALUE));
+    
+         System.out.println("DB message (4 of 5): VM Interfaces Stats Schema Created");
+    }
+    
     private void initiliazeWebClientABTableSchema(){
     
         webClientABStatsSchema=new ArrayList<>();
@@ -192,7 +199,7 @@ public class DBClass {
         webClientABStatsSchema.add(new OMLMPFieldDef("Percentage_99",OMLTypes.OML_DOUBLE_VALUE));
         webClientABStatsSchema.add(new OMLMPFieldDef("Percentage_100",OMLTypes.OML_DOUBLE_VALUE));
         
-    
+        System.out.println("DB message (5 of 5): Web Client AB Stats Schema Created");
     }
 
     public OMLBase getOmlclient() {

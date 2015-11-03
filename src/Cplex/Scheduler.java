@@ -13,6 +13,9 @@ package Cplex;
 import Controller.Configuration;
 import ilog.concert.*;
 import ilog.cplex.*;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Hashtable;
 
 
@@ -22,13 +25,14 @@ public class Scheduler {
     
     
     
+    
     public Scheduler(Configuration config){
         
         this.config=config;
         
     }
     
-    static void buildModelByRow(IloModeler    model,
+    public void buildModelByRow(IloModeler    model,
             SchedulerData          data,
             IloNumVar[][][][]   a,
             IloNumVarType type) throws IloException
@@ -71,7 +75,7 @@ public class Scheduler {
                     }
                     ssum = model.sum(ssum, jsum);
                 }
-                y[i][k] = model.sum(ssum, -data.p[i][k]);
+                y[i][k] = model.diff(ssum, data.p[i][k]);
                 Q[i][k] = Math.max(data.PREV_Y[i][k]+data.PREV_Q[i][k],0);
                 
                 ksum = model.sum(ksum, model.prod(y[i][k], Q[i][k]));
@@ -80,11 +84,12 @@ public class Scheduler {
         }
         
         // build pr penalty expression
+        
         IloNumExpr pr_expr = model.numExpr();
-        for(int s=0;s<data.S;s++)
+        for(int j=0;j<data.P;j++)
         {
-            IloNumExpr jsum = model.numExpr();
-            for(int j=0;j<data.P;j++)
+            IloNumExpr ssum = model.numExpr();
+            for(int s=0;s<data.S;s++)
             {
                 IloNumExpr vsum = model.numExpr();
                 for(int v=0;v<data.V;v++)
@@ -96,19 +101,19 @@ public class Scheduler {
                         expr = model.sum(expr, data.n[i][j][v][s]-data.D[i][j][v][s]);
                     }
                     expr = model.prod(expr, data.ksi(s,j,v));
-                    expr = model.diff(data.f(data.r[j], s,j, data.V)[v],expr);
-                    
                     vsum = model.sum(vsum, expr);
                 }
+                vsum = model.diff(data.r[j][s],vsum);
                 vsum = model.prod(vsum, data.pen[j][s]);
-                jsum = model.sum(jsum, vsum);
+                ssum = model.sum(ssum,vsum);
             }
-            pr_expr = model.sum(pr_expr, jsum);
+            pr_expr = model.sum(pr_expr, ssum);
         }
         
         // build fr fairness expression
-        double epsilon = 0.000000001;
-        double n_sum = epsilon;
+        
+        // build fr fairness expression
+        double n_sum = 0;
         
         for(int i=0;i<data.N;i++)
             for(int j=0;j<data.P;j++)
@@ -122,8 +127,6 @@ public class Scheduler {
         for (int k=0;k<data.P;k++)
         {
             IloNumExpr isum = model.numExpr();
-            isum = model.sum(isum,epsilon);
-            
             for(int i=0;i<data.N;i++)
             {
                 IloNumExpr vsum = model.numExpr();
@@ -139,11 +142,12 @@ public class Scheduler {
                 }
                 isum = model.sum(isum, vsum);
             }
-            isum = model.prod(isum,1/n_sum);
+            isum = model.prod(isum,1/(n_sum+0.00001));
             isum = model.diff(isum, 1/data.P);
             isum = model.prod(isum, data.phi[k]);
             fr_expr = model.sum(fr_expr, isum);
         }
+        
         
         // constraint for sum of a[][][][] variables
         for (int j=0; j<data.P; j++)
@@ -166,20 +170,30 @@ public class Scheduler {
         
         
         //start of debugging
-        fr_expr = model.numExpr();
+        //fr_expr = model.numExpr();
         //y_sum = model.numExpr();
         //end of debugging
         
         // minimization problem
         IloNumExpr problem = model.numExpr();
-        problem = model.sum(problem,model.sum(model.prod(model.sum(pr_expr, fr_expr), data.Omega), y_sum));
+        
+        // PENALTY AND FAIRNESS TAKE EQUAL IMPORTANCE
+        //problem = model.sum(problem,model.sum(model.prod(model.sum(pr_expr, fr_expr), data.Omega), y_sum));
+        
+        // PENALTY MINIMIZATION GETS MORE IMPORTANCE OVER FAIRNESS
+        problem = model.sum(problem,model.sum(model.sum(model.prod(pr_expr, data.Omega),fr_expr), y_sum));
         model.addMinimize(problem);
     }
     
-    public int[][][][] Run(SchedulerData data) {
+    
+    public int[][][][] Run(SchedulerData data) throws IOException {
         
+        
+        BufferedWriter ios = null;
+        BufferedWriter nos = null;
         
         int[][][][] activationMatrix=new int[data.N][data.P][data.V][data.S];
+        
         try {
             
             // Build model
@@ -189,7 +203,8 @@ public class Scheduler {
             
             IloNumVarType varType = IloNumVarType.Int;
             
-            
+            ios = new BufferedWriter(new FileWriter("a_values",true));
+            nos = new BufferedWriter(new FileWriter("n_values",true));
             
             //System.out.println(cplex.toString());
             
@@ -211,9 +226,31 @@ public class Scheduler {
                             {
                                 System.out.println(" a[" + i + "],["+j+"]["+v+"]["+s+"] = " + cplex.getValue(a[i][j][v][s]));
                                 activationMatrix[i][j][v][s] = (int)Math.round(cplex.getValue(a[i][j][v][s]));
+                                ios.write(activationMatrix[i][j][v][s]+" ");
+                                ios.flush();
                             }
                 }
+                ios.write("\n");
+                ios.flush();
+                
                 System.out.println();
+                
+                for (int i = 0; i < data.N; i++) {
+                    for (int j=0;j < data.P; j++)
+                        for (int v=0;v < data.V; v++)
+                        {
+                            for (int s=0;s < data.S; s++)
+                            {
+                                nos.write(data.n[i][j][v][s]+" ");
+                                nos.flush();
+                            }
+                        }
+                }
+                nos.write("\n");
+                nos.flush();
+            } else {
+                System.out.println("Solution NOT FOUND");
+                System.out.println("Solution status = " + cplex.getStatus());
             }
             updateData(data, activationMatrix);
             cplex.end();
@@ -225,6 +262,7 @@ public class Scheduler {
             System.out.println("Concert Error: " + ex);
         }
         
+        System.out.println("Method Call: Cplex Run Called");
         
         return activationMatrix;
     }

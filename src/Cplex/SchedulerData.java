@@ -17,7 +17,7 @@ public class SchedulerData {
     public int P; // # of service providers
     public int S; // # of services
     public int V; // # of VM types
-    public int[] r; // requests per service provider
+    public int[][] r; // requests per service provider and service
     public int R; // # of physical resources per physical machine
     public double[] phi; // fairness weight per provider
     public double[][] m; // m[vmtype][res]: amount of each res res for each VM vmtype vmtype
@@ -48,11 +48,13 @@ public class SchedulerData {
         initializeArrays();
     }
     
-    public void updateParameters(int[] r, int[][][] A, int[][][][] D){
+    public void updateParameters(int[][] r, int[][][] A, int[][][][] D){
         
         this.r = r;
         this.A = A;
         this.D = D;
+        
+        System.out.println("Method Call: Update Cplex Parameters Called");
         
     }
     
@@ -128,23 +130,23 @@ public class SchedulerData {
     
     
     
-    public double ksi(int s, int j, int v)
-    {
-        if (v == 0 && s == 0)
-            return 5000*(j+1);
-        else if (v == 0 && s == 1)
-            return 500*(j+1);
-        else if (v == 1 && s == 0)
-            return 10000*(j+1);
-        else if (v == 1 && s == 1)
-            return 1000*(j+1);
-        else if (v == 2 && s == 0)
-            return 20000*(j+1);
-        else if (v == 2 && s == 1)
-            return 5000*(j+1);
-        else
-            return 100*(v+1);
-    }
+  public double ksi(int s, int j, int v)
+	{
+		if (v == 0 && s == 0)
+			return 5000*(j+1);
+		else if (v == 0 && s == 1)
+			return 500*(j+1);
+		else if (v == 1 && s == 0)
+			return 10000*(j+1);
+		else if (v == 1 && s == 1)
+			return 1000*(j+1);
+		else if (v == 2 && s == 0)
+			return 20000*(j+1);
+		else if (v == 2 && s == 1)
+			return 5000*(j+1);
+		else
+			return 100*(v+1);
+	}
     
     public double[] f(int r, int s, int j, int V)
     {

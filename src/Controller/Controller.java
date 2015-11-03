@@ -56,11 +56,11 @@ public class Controller {
     int _currentInstance=0;
     int vmIDs=0;
     
-    SchedulerData cplexData;
+    SchedulerData _cplexData;
     Scheduler scheduler;
     
     
-    Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots, DBClass db, DBUtilities dbUtilities) {
+    Controller(Host[] hosts,WebClient[] clients, Configuration config, Slot[] slots, DBUtilities dbUtilities) {
         
         this._config=config;
         this._slots=slots;
@@ -73,16 +73,17 @@ public class Controller {
         this._hostStats=new HostStats[_config.getHostsNumber()];
         this._activeVMStats=new ArrayList<>();
         this._numberOfMachineStatsPerSlot=_config.getNumberOfMachineStatsPerSlot();
-        this.cplexData=new SchedulerData(config);
+        this._cplexData=new SchedulerData(config);
         
     }
     
     void Run(int slot) throws IOException {
         
-        System.out.println("Controller Runs - Slot:"+slot);
+        System.out.println("******* Controller *******");
+        System.out.println("-- Slot:"+slot);
         
         if(false)
-            startStatsUpdateTimer(slot); // for Statistics updates
+            startNodesStatsTimer(slot); // for Statistics updates
         
         try {
             
@@ -90,14 +91,21 @@ public class Controller {
             int[][][] vmRequestMatrix=loadVMRequestMatrix(slot);             //requestMatrix[v][s][p]
             int[][][][] vmDeactivationMatrix=loadVmDeactivationMatrix(slot);
             
+            System.out.println("Method Call: Delete VMs");
             deleteVMs(slot);
-            int[] requestPattern=Utilities.findRequestPattern(_config);
             
-            cplexData.updateParameters(requestPattern, vmRequestMatrix, vmDeactivationMatrix);
+            System.out.println("Method Call: Find Request Pattern");
+            int[][] requestPattern=Utilities.findRequestPattern(_config);
+            
+             System.out.println("Method Call: Update Cplex parameters");
+            _cplexData.updateParameters(requestPattern, vmRequestMatrix, vmDeactivationMatrix);
+            
             scheduler=new Scheduler(_config);
             
-            int[][][][] activationMatrix=scheduler.Run(cplexData);
+            System.out.println("Method Call: Cplex Run");
+            int[][][][] activationMatrix=scheduler.Run(_cplexData);
             
+             System.out.println("MESSAGE: Activation matrix created!");
             
             
             // int[][][][] activationMatrix =tempScheduler(vmRequestMatrix); // activationMatrix[i][j][v][s]: # of allocated VMs of v v for service s of provider j at AP i
@@ -111,7 +119,7 @@ public class Controller {
             for (int i = 0; i < _config.getHostsNumber(); i++) {
                 List<VMRequest> vm2CreatePerHost=cplexSolution2VMRequets(slot, _hosts[i].getHostID(),activationMatrix);
                 
-                System.out.println("Bring up: "+vm2CreatePerHost.size()+"VMs");
+                System.out.println("MESSAGE: Provider:"+i+" Bring up: "+vm2CreatePerHost.size()+"VMs");
                 
                 for (Iterator iterator = vm2CreatePerHost.iterator(); iterator.hasNext();) {
                     request = (VMRequest) iterator.next();
@@ -192,7 +200,7 @@ public class Controller {
     
     private void deleteVMs(int slot) throws IOException, InterruptedException {
         
-        System.out.println("Delete VMs Called - slot:"+slot);
+       
         
         List<Integer> requestID2RemoveThisSlot=new ArrayList<>();
         
@@ -235,7 +243,7 @@ public class Controller {
                 }
             }
         }
-        
+         System.out.println("Method Call: Delete VMs Called");
     }
     
     
@@ -483,7 +491,7 @@ public class Controller {
             Hashtable  vmParameters=Utilities.determineVMparameters(request,hostName);
             int counter=0;
             
-            while(!vmCreated){
+            while(!vmCreated&counter<200){
                 
                 vmCreated=_webUtilities.checkVMListOnHost(hostName,String.valueOf(vmParameters.get("vmName")));
                 System.out.println("Bring VM up attempt:"+ counter+"-requestID:"+request.getRequestID());
@@ -498,6 +506,9 @@ public class Controller {
                 counter++;
             }
             
+           if(counter==200){
+               System.out.println("Failed to load requestID:"+request.getRequestID());
+           }
             String vmName=String.valueOf(vmParameters.get("vmName"));
             _webUtilities.startVM(vmName,hostName);
             
@@ -555,7 +566,7 @@ public class Controller {
         
     }
     
-    private void startStatsUpdateTimer(int slot) {
+    private void startNodesStatsTimer(int slot) {
         
         int statsUpdateInterval=_config.getSlotDuration()/_config.getNumberOfMachineStatsPerSlot();
         
