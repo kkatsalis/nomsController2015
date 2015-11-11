@@ -10,6 +10,7 @@ import Controller.Host;
 import Controller.Slot;
 import Controller.VM;
 import Controller.VMRequest;
+import Controller.ServiceRequestsPerProvider;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -32,23 +33,23 @@ public class Utilities {
         return randomNum;
     }
     
-    public static String determineVMType(int providerID,Configuration _config) {
+    public static List<String> determineVMs(Configuration _config, int serviceType,  ServiceRequestsPerProvider _servicePattern,List<VM> activeVMs) {
         
-       //Random Allocation 
-      int type=Utilities.randInt(0,_config.getVmTypesNames().size()-1);
-     
-       String  vmType=_config.getVmTypesNames().get(type); //Small
+       List<String> vms=new ArrayList<>(); 
       
-      return vmType;
+       int requests=_servicePattern.getNumberOfExpectedrequestsPerService()[serviceType];
+       //Random Allocation 
+      
+       
+      return vms;
       
     }
     
-    public static String determineVMService(int providerID, Configuration _config) {
+    public static int determineVMService(int providerID, Configuration _config) {
         
       int type=Utilities.randInt(0,_config.getServicesNames().size()-1);
-      String serviceType=_config.getServicesNames().get(type); 
       
-      return serviceType;
+      return type;
     }
  
     public static Hashtable determineVMparameters(VMRequest vmRequest,String hostName) {

@@ -67,6 +67,8 @@ public class Simulator {
 
     WebUtilities _webUtility;
     
+    ServiceRequestsPerProvider[] _servicePattern;
+    
         public Simulator(){
            
            this._config=new Configuration();
@@ -79,13 +81,15 @@ public class Simulator {
            this._webUtility=new WebUtilities(_config); 
            this._db=new DBClass();
            this._dbUtilities=new DBUtilities(_hosts, _webUtility,_db);
-
+           this._servicePattern=new ServiceRequestsPerProvider[_config.getProvidersNumber()];
+           
+           
            System.out.println("********** System Initialization Phase ****************");
            
            initializeNodesAndSlots(); //creates: Hosts, Clients, Slots
            initializeRateGenerators(); 
            initializeVmLifetimeGenerators();
-           
+           initializeRequestPattern();
            addInitialVmEvents();
            
            this._controller=new Controller(_hosts,_webClients,_config,_slots,_dbUtilities); 
@@ -276,20 +280,36 @@ public class Simulator {
         
         if(slot2AddVM<_config.getNumberOfSlots()){
             
-            VMRequest newRequest = new VMRequest(_config,providerID,lifetime);
-
-            newRequest.setVmType(Utilities.determineVMType(providerID,_config));
-            newRequest.setService(Utilities.determineVMService(providerID,_config));
-
-
-            //add vm during this slot
-            newRequest.setSlotStart(slot2AddVM);
-             _slots[slot2AddVM].getVmRequests2Activate()[providerID].add(newRequest);
+            int serviceType=Utilities.determineVMService(providerID,_config);
              
-             //remove vm during this slot
-            newRequest.setSlotEnd(slot2RemoveVM);
-            if(slot2RemoveVM<_config.getNumberOfSlots())
-                _slots[slot2RemoveVM].getVmRequests2Remove()[providerID].add(newRequest); 
+            List<VMRequest> newRequest = new ArrayList<>();
+            
+            List<String> vms=Utilities.determineVMs(_config,serviceType,_servicePattern[providerID],Utilities.findActiveVMs(slot, _hosts));
+        
+            if(!vms.isEmpty()){
+                
+                int index=0;
+                
+                while(index< vms.size()) {
+                        newRequest.add(new VMRequest(_config,providerID,lifetime));
+                        newRequest.get(newRequest.size()-1).setService(_config.getServicesNames().get(serviceType));
+                        newRequest.get(newRequest.size()-1).setSlotStart(slot2AddVM);
+                        newRequest.get(newRequest.size()-1).setVmType(vms.get(index));
+                        
+                       _slots[slot2AddVM].getVmRequests2Activate()[providerID].add(newRequest.get(newRequest.size()-1));
+
+                     //remove vm during this slot
+                    newRequest.get(newRequest.size()-1).setSlotEnd(slot2RemoveVM);
+                    
+                    if(slot2RemoveVM<_config.getNumberOfSlots())
+                        _slots[slot2RemoveVM].getVmRequests2Remove()[providerID].add(newRequest.get(newRequest.size()-1)); 
+
+                    index++;
+                    }
+                    
+            }
+              
+        
         }
         else
             System.out.println("failed to add request" );
@@ -401,6 +421,18 @@ public class Simulator {
             
         }
 
+    private void initializeRequestPattern() {
+     
+        for (int i = 0; i < _config.getProvidersNumber(); i++) {
+            for (int j = 0; j < _config.getServicesNumber(); j++) {
+                _servicePattern[i].getNumberOfExpectedrequestsPerService()[j]=1000;
+                        
+        }
+        
+        }
+        
+    }
+
             
     
     class ExecuteClientRequest extends TimerTask {
@@ -441,12 +473,22 @@ public class Simulator {
                 ABStats abStats=_webUtility.retrieveStatsABPerClient(clientName,vmIP); //getFromClient
                 _dbUtilities.updateABStatistics2DB(slot,measurement,abStats); //send2DB
                 
+                updateServiceRequestPattern();
+                
+                
             } catch (IOException | JSONException ex) {
                 Logger.getLogger(Simulator.class.getName()).log(Level.SEVERE, null, ex);
             }
                       
                       
             }
+
+        private void updateServiceRequestPattern() {
+            //update this objects
+            //_servicePattern
+                    
+            throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        }
 
        
     }
